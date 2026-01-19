@@ -24,6 +24,7 @@
 #include <assert.h>
 
 #include <apr_strmatch.h>
+#include <apr_tables.h>
 
 #include <httpd.h>
 #include <http_core.h>

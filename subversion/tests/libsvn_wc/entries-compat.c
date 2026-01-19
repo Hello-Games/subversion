@@ -287,9 +287,7 @@ static const char * const M_TESTING_DATA = (
 
 
 static svn_error_t *
-create_fake_wc(const char *subdir,
-               const svn_test_opts_t *opts,
-               apr_pool_t *pool)
+create_fake_wc(const char *subdir, apr_pool_t *pool)
 {
   const char *root;
   const char *wc_abspath;
@@ -300,7 +298,7 @@ create_fake_wc(const char *subdir,
 
   SVN_ERR(svn_dirent_get_absolute(&wc_abspath, root, pool));
   SVN_ERR(svn_test__create_fake_wc(wc_abspath, TESTING_DATA, nodes, actuals,
-                                   opts->wc_format_version, pool));
+                                   pool));
 
   return SVN_NO_ERROR;
 }
@@ -310,10 +308,9 @@ static svn_error_t *
 create_open(svn_wc__db_t **db,
             const char **local_abspath,
             const char *subdir,
-            const svn_test_opts_t *opts,
             apr_pool_t *pool)
 {
-  SVN_ERR(create_fake_wc(subdir, opts, pool));
+  SVN_ERR(create_fake_wc(subdir, pool));
 
   SVN_ERR(svn_dirent_get_absolute(local_abspath,
                                   svn_dirent_join("fake-wc", subdir, pool),
@@ -331,8 +328,7 @@ create_open(svn_wc__db_t **db,
 
 
 static svn_error_t *
-test_entries_alloc(const svn_test_opts_t *opts,
-                   apr_pool_t *pool)
+test_entries_alloc(apr_pool_t *pool)
 {
   svn_wc__db_t *db;
   const char *local_abspath;
@@ -344,7 +340,7 @@ test_entries_alloc(const svn_test_opts_t *opts,
 #undef WC_NAME
 #define WC_NAME "test_entries_alloc"
 
-  SVN_ERR(create_open(&db, &local_abspath, WC_NAME, opts, pool));
+  SVN_ERR(create_open(&db, &local_abspath, WC_NAME, pool));
 
   SVN_ERR(svn_wc_adm_open3(&adm_access,
                            NULL /* associated */,
@@ -379,8 +375,7 @@ test_entries_alloc(const svn_test_opts_t *opts,
 
 
 static svn_error_t *
-test_stubs(const svn_test_opts_t *opts,
-           apr_pool_t *pool)
+test_stubs(apr_pool_t *pool)
 {
   svn_wc__db_t *db;
   const char *local_abspath;
@@ -396,11 +391,10 @@ test_stubs(const svn_test_opts_t *opts,
 #undef WC_NAME
 #define WC_NAME "test_stubs"
 
-  SVN_ERR(create_open(&db, &local_abspath, WC_NAME, opts, pool));
+  SVN_ERR(create_open(&db, &local_abspath, WC_NAME, pool));
 
   M_dir = svn_dirent_join(local_abspath, "M", pool);
-  SVN_ERR(svn_test__create_fake_wc(M_dir, M_TESTING_DATA, NULL, NULL,
-                                   opts->wc_format_version, pool));
+  SVN_ERR(svn_test__create_fake_wc(M_dir, M_TESTING_DATA, NULL, NULL, pool));
 
   /* The "M" entry is a subdir. Let's ensure we can reach its stub,
      and the actual contents.  */
@@ -460,8 +454,7 @@ test_stubs(const svn_test_opts_t *opts,
 }
 
 static svn_error_t *
-test_access_baton_like_locking(const svn_test_opts_t *opts,
-                               apr_pool_t *pool)
+test_access_baton_like_locking(apr_pool_t *pool)
 {
   svn_wc__db_t *db;
   svn_wc_context_t *wc_ctx, *wc_ctx2;
@@ -473,7 +466,7 @@ test_access_baton_like_locking(const svn_test_opts_t *opts,
 
 #undef WC_NAME
 #define WC_NAME "test_access_batons"
-  SVN_ERR(create_open(&db, &local_abspath, WC_NAME, opts, pool));
+  SVN_ERR(create_open(&db, &local_abspath, WC_NAME, pool));
 
   D = svn_dirent_join(local_abspath, "DD", pool);
 
@@ -602,7 +595,6 @@ test_access_baton_like_locking(const svn_test_opts_t *opts,
   {
     const char *url, *repos_root_url, *repos_uuid;
     const char *subdir = svn_dirent_join(local_abspath, "sub-wc", pool);
-    int target_format;
     const char *repos_relpath;
 
     svn_boolean_t is_root;
@@ -613,14 +605,10 @@ test_access_baton_like_locking(const svn_test_opts_t *opts,
     url = svn_path_url_add_component2(repos_root_url, repos_relpath, pool);
 
     SVN_ERR(svn_io_make_dir_recursively(subdir, pool));
-    SVN_ERR(svn_wc__format_from_version(&target_format, opts->wc_format_version,
-                                        pool));
-    SVN_ERR(svn_wc__ensure_adm(wc_ctx, target_format,
-                               subdir,
+    SVN_ERR(svn_wc_ensure_adm3(subdir, repos_uuid,
                                svn_path_url_add_component2(url, "sub-wc", pool),
-                               repos_root_url, repos_uuid,
-                               0, svn_depth_infinity,
-                               opts->store_pristine, pool));
+                               repos_root_url, 0, svn_depth_infinity,
+                               pool));
 
     SVN_ERR(svn_wc__db_is_switched(&is_root, NULL, NULL, wc_ctx->db, subdir,
                                    pool));
@@ -647,12 +635,12 @@ static int max_threads = -1;
 static struct svn_test_descriptor_t test_funcs[] =
   {
     SVN_TEST_NULL,
-    SVN_TEST_OPTS_PASS(test_entries_alloc,
-                       "entries are allocated in access baton"),
-    SVN_TEST_OPTS_PASS(test_stubs,
-                       "access baton mojo can return stubs"),
-    SVN_TEST_OPTS_PASS(test_access_baton_like_locking,
-                       "access baton like locks must work with wc-ng"),
+    SVN_TEST_PASS2(test_entries_alloc,
+                   "entries are allocated in access baton"),
+    SVN_TEST_PASS2(test_stubs,
+                   "access baton mojo can return stubs"),
+    SVN_TEST_PASS2(test_access_baton_like_locking,
+                   "access baton like locks must work with wc-ng"),
     SVN_TEST_NULL
   };
 

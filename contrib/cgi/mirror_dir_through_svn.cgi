@@ -1,9 +1,9 @@
 #!/usr/bin/perl -wT
 
-# $HeadURL$
-# $LastChangedDate$
-# $LastChangedBy$
-# $LastChangedRevision$
+# $HeadURL: https://svn.apache.org/repos/asf/subversion/branches/1.14.x/contrib/cgi/mirror_dir_through_svn.cgi $
+# $LastChangedDate: 2014-02-28 17:26:47 +0000 (Fri, 28 Feb 2014) $
+# $LastChangedBy: breser $
+# $LastChangedRevision: 1573006 $
 
 $| = 1;
 

@@ -37,7 +37,6 @@
 
 #include "wc.h"   /* just for prototypes of things in this .c file */
 #include "entries.h"
-#include "textbase.h"
 #include "private/svn_wc_private.h"
 
 #include "svn_private_config.h"
@@ -506,9 +505,8 @@ svn_wc__fetch_base_func(const char **filename,
       return SVN_NO_ERROR;
     }
 
-  SVN_ERR(svn_wc__textbase_setaside(filename, sfb->db, local_abspath,
-                                    checksum, NULL, NULL,
-                                    result_pool, scratch_pool));
+  SVN_ERR(svn_wc__db_pristine_get_path(filename, sfb->db, local_abspath,
+                                       checksum, scratch_pool, scratch_pool));
 
   return SVN_NO_ERROR;
 }

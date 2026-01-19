@@ -4,23 +4,6 @@
 # To view an issue listed as (issue #XXXX), visit:
 #   https://subversion.apache.org/issue-XXXX
 
-Version 1.16.0
-(?? ??? 20XX, from /branches/1.16.x)
-https://svn.apache.org/repos/asf/subversion/tags/1.16.0
-
-Version 1.15.0
-(?? ??? 20XX, from /branches/1.15.x)
-https://svn.apache.org/repos/asf/subversion/tags/1.15.0
- User-visible changes:
-  - Client-side improvements and bugfixes:
-    * Support multiple working copy formats (1.8-onward, 1.15) (issue #????)
-
-  - Other tool improvements and bugfixes:
-    * When building on Unix, change default configure option to enable support
-      for the simple (plaintext) credential store unless disabled at configure
-      time with --disable-plaintext-password-storage. This reverts r1845377
-      (r1909351).
-
 Version 1.14.5
 (7 Dec 2024, from /branches/1.14.x)
 https://svn.apache.org/repos/asf/subversion/tags/1.14.5

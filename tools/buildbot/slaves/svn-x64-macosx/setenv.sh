@@ -15,7 +15,7 @@
 #  specific language governing permissions and limitations
 #  under the License.
 
-## This script calls a helper that provides the following environment
+## This script calls a helper that provides the folloing environemnt
 ## variables:
 ##
 ##     PATH                     The search path

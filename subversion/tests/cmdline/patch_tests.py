@@ -4,7 +4,7 @@
 #  patch_tests.py:  some basic patch tests
 #
 #  Subversion is a tool for revision control.
-#  See https://subversion.apache.org for more information.
+#  See http://subversion.apache.org for more information.
 #
 # ====================================================================
 #    Licensed to the Apache Software Foundation (ASF) under one
@@ -1662,8 +1662,9 @@ def patch_no_svn_eol_style(sbox):
                                             [], True, True,
                                             keep_eol_style=True)
 
-      svntest.actions.run_and_verify_revert([mu_path],
-                                            '-R', wc_dir)
+      expected_output = ["Reverted '" + mu_path + "'\n"]
+      svntest.actions.run_and_verify_svn(expected_output, [],
+                                         'revert', '-R', wc_dir)
 
 def patch_with_svn_eol_style(sbox):
   "patch target with svn:eol-style"
@@ -1778,8 +1779,8 @@ def patch_with_svn_eol_style(sbox):
                                             1, # dry-run
                                             keep_eol_style=True)
 
-      svntest.actions.run_and_verify_revert([mu_path],
-                                            '-R', wc_dir)
+      expected_output = ["Reverted '" + mu_path + "'\n"]
+      svntest.actions.run_and_verify_svn(expected_output, [], 'revert', '-R', wc_dir)
 
 def patch_with_svn_eol_style_uncommitted(sbox):
   "patch target with uncommitted svn:eol-style"
@@ -1888,8 +1889,8 @@ def patch_with_svn_eol_style_uncommitted(sbox):
                                             1, # dry-run
                                             keep_eol_style=True)
 
-      svntest.actions.run_and_verify_revert([mu_path],
-                                            '-R', wc_dir)
+      expected_output = ["Reverted '" + mu_path + "'\n"]
+      svntest.actions.run_and_verify_svn(expected_output, [], 'revert', '-R', wc_dir)
 
 def patch_with_ignore_whitespace(sbox):
   "ignore whitespace when patching"

@@ -590,7 +590,7 @@ class State:
 
     desc = { }
     for line in lines:
-      if line.startswith('DBG:') or re.match('^Fetching text bases [.]+done$', line):
+      if line.startswith('DBG:'):
         continue
 
       match = _re_parse_checkout.search(line)
@@ -687,11 +687,11 @@ class State:
         if os.path.isfile(node):
           try:
             if keep_eol_style:
-              with io.open(node, 'r', newline='', encoding='utf-8') as fp:
-                contents = fp.read()
+              
+              contents = io.open(node, 'r', newline='',
+                                 encoding='utf-8').read()
             else:
-              with io.open(node, 'r', encoding='utf-8') as fp:
-                contents = fp.read()
+              contents = io.open(node, 'r', encoding='utf-8').read()
             if not isinstance(contents, str):
               # Python 2: contents is read as an unicode object,
               # but we expect it is a str.
@@ -699,8 +699,7 @@ class State:
           except:
             # If the file contains non UTF-8 character, we treat its
             # content as binary represented as a bytes object.
-            with open(node, 'rb') as fp:
-              contents = fp.read()
+            contents = open(node, 'rb').read()
         else:
           contents = None
         desc[repos_join(parent, name)] = StateItem(contents=contents)

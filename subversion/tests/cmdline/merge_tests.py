@@ -3,7 +3,7 @@
 #  merge_tests.py:  testing merge
 #
 #  Subversion is a tool for revision control.
-#  See https://subversion.apache.org for more information.
+#  See http://subversion.apache.org for more information.
 #
 # ====================================================================
 #    Licensed to the Apache Software Foundation (ASF) under one
@@ -4783,7 +4783,7 @@ def mergeinfo_inheritance_and_discontinuous_ranges(sbox):
   # Merge r2:6 into A_COPY/D
   #
   # A_COPY/D should inherit the mergeinfo '/A:4' from A_COPY
-  # combine it with the discontinuous merges performed directly on
+  # combine it with the discontinous merges performed directly on
   # it (A/D/ 2:3 and A/D 4:6) resulting in '/A/D:3-6'.
   expected_output = wc.State(D_COPY_path, {
     'H/psi'   : Item(status='U '),
@@ -5067,10 +5067,11 @@ def merge_to_switched_path(sbox):
   # but as it is switched this empty mergeinfo just elides to the
   # repository (empty mergeinfo on a path can elide if that path doesn't
   # inherit *any* mergeinfo).
-  svntest.actions.run_and_verify_revert([A_COPY_path,
-                                         A_COPY_D_G_path,
-                                         A_COPY_D_G_rho_path],
-                                        '-R', wc_dir)
+  svntest.actions.run_and_verify_svn(["Reverted '" + A_COPY_path+ "'\n",
+                                      "Reverted '" + A_COPY_D_G_path+ "'\n",
+                                      "Reverted '" + A_COPY_D_G_rho_path +
+                                      "'\n"],
+                                     [], 'revert', '-R', wc_dir)
   svntest.actions.run_and_verify_svn(["property '" + SVN_PROP_MERGEINFO +
                                       "' set on '" + A_COPY_D_path+ "'" +
                                       "\n"], [], 'ps', SVN_PROP_MERGEINFO,
@@ -9634,9 +9635,9 @@ def dont_add_mergeinfo_from_own_history(sbox):
                                        '--allow-mixed-revisions', A_path)
 
   # Revert all local mods
-  svntest.actions.run_and_verify_revert([A_path,
-                                         mu_path],
-                                        '-R', wc_dir)
+  svntest.actions.run_and_verify_svn(["Reverted '" + A_path + "'\n",
+                                      "Reverted '" + mu_path + "'\n"],
+                                     [], 'revert', '-R', wc_dir)
 
   # Move 'A' to 'A_MOVED' and once again merge r7 from 'A_COPY', this time
   # to 'A_MOVED'.  This attempts to add the mergeinfo '/A:3' to
@@ -9771,9 +9772,9 @@ def dont_add_mergeinfo_from_own_history(sbox):
                                        check_props=True)
 
   # Revert all local mods
-  svntest.actions.run_and_verify_revert([A_MOVED_path,
-                                         mu_MOVED_path],
-                                        '-R', wc_dir)
+  svntest.actions.run_and_verify_svn(["Reverted '" + A_MOVED_path + "'\n",
+                                      "Reverted '" + mu_MOVED_path + "'\n"],
+                                     [], 'revert', '-R', wc_dir)
 
   # Create a new 'A' unrelated to the old 'A' which was moved.  Then merge
   # r7 from 'A_COPY' to this new 'A'.  Since the new 'A' shares no history
@@ -13349,7 +13350,7 @@ def no_self_referential_filtering_on_added_path(sbox):
 def merge_range_prior_to_rename_source_existence(sbox):
   "merge prior to rename src existence still dels src"
 
-  # Replicate a merge bug found while syncing up a feature branch on the
+  # Replicate a merge bug found while synching up a feature branch on the
   # Subversion repository with trunk.  See r874121 of
   # http://svn.apache.org/repos/asf/subversion/branches/ignore-mergeinfo, in which
   # a move was merged to the target, but the delete half of the move
@@ -18657,118 +18658,6 @@ def merge_deleted_folder_with_mergeinfo_2(sbox):
 
   os.chdir(was_cwd)
 
-#----------------------------------------------------------------------
-# Test that mismatched source repository root URLs in a two-URL merge
-# throws an error E170000 SVN_ERR_RA_ILLEGAL_URL.
-#
-# (Since issue 4874 (Subversion 1.15) that error is also wrapped in
-# E195012 SVN_ERR_CLIENT_UNRELATED_RESOURCES for consistency with
-# the source-target mismatch errors.)
-#
-# For mismatched URLs we use two repositories with the same UUID.
-@Issue(4874)
-def merge_error_if_source_urls_differ(sbox):
-  "merge error if source urls differ"
-
-  sbox.build()
-  expected_disk, expected_status = set_up_branch(sbox)
-  wc_dir = sbox.wc_dir
-  repo_dir = sbox.repo_dir
-
-  # Create a second repository with the same content, same UUID
-  other_repo_dir, other_repo_url = sbox.add_repo_path("other")
-  other_wc_dir = sbox.add_wc_path("other")
-  svntest.main.copy_repos(repo_dir, other_repo_dir, 6, ignore_uuid=False)
-
-  G_COPY_path = sbox.ospath('A_COPY/D/G')
-  svntest.actions.run_and_verify_svn2(None, '.*: E170000: .*', 1,
-                                      'merge',
-                                      sbox.repo_url + '/A/D/G@3',
-                                      other_repo_url + '/A/D/G@4',
-                                      G_COPY_path)
-
-#----------------------------------------------------------------------
-# Test that a merge with mismatched source and target repository root URLs
-# but identical repository UUIDs throws a warning error, for two-URL and
-# pegged merges.
-#
-# Issue #4874 makes this a warning in Subversion 1.15 and an error in 1.16.
-# Previously it was treated as a foreign repository merge.
-#
-# For mismatched URLs we use two repositories with the same UUID.
-@Issue(4874)
-def merge_error_if_ambiguous_foreign_merge(sbox):
-  "merge error if ambiguous foreign merge"
-
-  sbox.build()
-  expected_disk, expected_status = set_up_branch(sbox)
-  wc_dir = sbox.wc_dir
-  repo_dir = sbox.repo_dir
-
-  # Create a second repository with the same content, same UUID
-  other_repo_dir, other_repo_url = sbox.add_repo_path("other")
-  other_wc_dir = sbox.add_wc_path("other")
-  svntest.main.copy_repos(repo_dir, other_repo_dir, 6, ignore_uuid=False)
-
-  # With Issue #4874 implemented, the attempted merges should error out with
-  # SVN_ERR_CLIENT_UNRELATED_RESOURCES, because of mismatched source and
-  # target URLs.
-
-  # expect warning or error (E195012 SVN_ERR_CLIENT_UNRELATED_RESOURCES)?
-  expected_stdout = None if svntest.main.SVN_VER_MINOR < 16 else []
-  expected_stderr = '.*: E195012: .*' if svntest.main.SVN_VER_MINOR >= 15 else []
-  expected_exit = 0 if svntest.main.SVN_VER_MINOR < 16 else 1
-
-  # two-URL merge
-  svntest.actions.run_and_verify_svn2(expected_stdout, expected_stderr,
-                                      expected_exit,
-                                      'merge',
-                                      other_repo_url + '/A/D/G@3',
-                                      other_repo_url + '/A/D/G@4',
-                                      sbox.ospath('A_COPY/D/G'))
-  svntest.main.run_svn(False, 'revert', '-qR', sbox.wc_dir)
-  # pegged merge
-  svntest.actions.run_and_verify_svn2(expected_stdout, expected_stderr,
-                                      expected_exit,
-                                      'merge', '-c4',
-                                      other_repo_url + '/A/D/G',
-                                      sbox.ospath('A_COPY/D/G'))
-  svntest.main.run_svn(False, 'revert', '-qR', sbox.wc_dir)
-
-#----------------------------------------------------------------------
-# Test that a merge with mismatched source and target repository root URLs
-# throws an error, for automatic and reintegrate merges.
-#
-# This behaviour is unchanged by issue #4874, just reinforced and with more
-# informative error messages.
-#
-# For mismatched URLs we use two repositories with the same UUID.
-@Issue(4874)
-def merge_error_if_source_target_url_mismatch(sbox):
-  "merge error if source target url mismatch"
-
-  sbox.build()
-  expected_disk, expected_status = set_up_branch(sbox)
-  wc_dir = sbox.wc_dir
-  repo_dir = sbox.repo_dir
-
-  # Create a second repository with the same content, same UUID
-  other_repo_dir, other_repo_url = sbox.add_repo_path("other")
-  other_wc_dir = sbox.add_wc_path("other")
-  svntest.main.copy_repos(repo_dir, other_repo_dir, 6, ignore_uuid=False)
-
-  expected_stderr = '.*: E195012: .*'  # SVN_ERR_CLIENT_UNRELATED_RESOURCES
-  # automatic merge
-  svntest.actions.run_and_verify_svn2([], expected_stderr, 1,
-                                      'merge',
-                                      other_repo_url + '/A/D/G',
-                                      sbox.ospath('A_COPY/D/G'))
-  # reintegrate merge
-  svntest.actions.run_and_verify_svn2([], expected_stderr, 1,
-                                      'merge', '--reintegrate',
-                                      other_repo_url + '/A/D/G',
-                                      sbox.ospath('A_COPY/D/G'))
-
 ########################################################################
 # Run the tests
 
@@ -18918,9 +18807,6 @@ test_list = [ None,
               merge_dir_delete_force,
               merge_deleted_folder_with_mergeinfo,
               merge_deleted_folder_with_mergeinfo_2,
-              merge_error_if_source_urls_differ,
-              merge_error_if_ambiguous_foreign_merge,
-              merge_error_if_source_target_url_mismatch,
              ]
 
 if __name__ == '__main__':

@@ -37,10 +37,10 @@
 #
 #-------------------------------------------------------------------------
 
-# $HeadURL$
-# $LastChangedDate$
-# $LastChangedBy$
-# $LastChangedRevision$
+# $HeadURL: https://svn.apache.org/repos/asf/subversion/branches/1.14.x/contrib/client-side/asvn $
+# $LastChangedDate: 2010-05-06 14:48:52 +0100 (Thu, 06 May 2010) $
+# $LastChangedBy: peters $
+# $LastChangedRevision: 941728 $
 
 SVN=/usr/bin/svn
 ACTION=""

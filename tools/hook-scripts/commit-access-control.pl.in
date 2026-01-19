@@ -6,10 +6,10 @@
 # commit in repository REPOS using the permissions listed in the
 # configuration file CONF_FILE.
 #
-# $HeadURL$
-# $LastChangedDate$
-# $LastChangedBy$
-# $LastChangedRevision$
+# $HeadURL: https://svn.apache.org/repos/asf/subversion/branches/1.14.x/tools/hook-scripts/commit-access-control.pl.in $
+# $LastChangedDate: 2009-11-16 19:07:17 +0000 (Mon, 16 Nov 2009) $
+# $LastChangedBy: hwright $
+# $LastChangedRevision: 880911 $
 #
 # Usage: commit-access-control.pl REPOS TXN-NAME CONF_FILE
 #    

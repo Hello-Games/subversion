@@ -17,10 +17,10 @@
 # history and logs, available at http://subversion.tigris.org/.
 # ====================================================================
 #
-# $HeadURL$
-# $LastChangedDate$
-# $LastChangedBy$
-# $LastChangedRevision$
+# $HeadURL: https://svn.apache.org/repos/asf/subversion/branches/1.14.x/contrib/client-side/diff-wrap.sh $
+# $LastChangedDate: 2008-03-10 18:07:08 +0000 (Mon, 10 Mar 2008) $
+# $LastChangedBy: dlr $
+# $LastChangedRevision: 869902 $
 
 if [ $# -lt 2 ]; then
     echo "usage: $0 [ignored args...] file1 file2" >&2

@@ -30,10 +30,10 @@ find what you are looking for.  This script was written to create a
 smaller non-working working copy that can be crawled with find or
 find's locate utility to make it easier to find files.
 
-$HeadURL$
-$LastChangedRevision$
-$LastChangedDate$
-$LastChangedBy$
+$HeadURL: https://svn.apache.org/repos/asf/subversion/branches/1.14.x/contrib/client-side/svn_export_empty_files.py $
+$LastChangedRevision: 1742840 $
+$LastChangedDate: 2016-05-08 18:34:40 +0100 (Sun, 08 May 2016) $
+$LastChangedBy: stefan2 $
 """
 
 import getopt

@@ -77,7 +77,7 @@ typedef svn_error_t *(*svn_config__add_value_fn)(
 
 
 /*
- * Create a new constructor allocated from RESULT_POOL.
+ * Create a new constuctor allocated from RESULT_POOL.
  * Any of the callback functions may be NULL.
  * The constructor implementation is responsible for implementing any
  * case-insensitivity, value expansion, or other features on top of
@@ -98,9 +98,9 @@ svn_config__constructor_create(
  * passed to the callback in the same order as they're defined in
  * STREAM.
  *
- * The lifetime of section names, option names and values passed to
+ * The lifetome of section names, option names and values passed to
  * the constructor does not extend past the invocation of each
- * callback; see callback docs, above.
+ * callback; see calback docs, above.
  *
  * The parser will use SCRATCH_POOL for its own allocations.
  */

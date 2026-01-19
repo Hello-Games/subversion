@@ -21,9 +21,9 @@
 #    under the License.
 ######################################################################
 #
-# $HeadURL$
-# $LastChangedDate$
-# $LastChangedRevision$
+# $HeadURL: https://svn.apache.org/repos/asf/subversion/branches/1.14.x/tools/examples/svnlook.py $
+# $LastChangedDate: 2013-11-14 11:11:07 +0000 (Thu, 14 Nov 2013) $
+# $LastChangedRevision: 1541878 $
 
 """
 svnlook.py can also be used as a Python module::
@@ -237,7 +237,7 @@ class SVNLook(object):
 
 # ---------------------------------------------------------
 # Delta Editors. For documentation see:
-# https://subversion.apache.org/docs/community-guide/community-guide.html#docs
+# http://subversion.apache.org/docs/community-guide/#docs
 
 # this one doesn't process delete_entry, change_dir_prop, apply_text_delta,
 # change_file_prop, close_file, close_edit, abort_edit

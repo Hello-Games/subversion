@@ -3,7 +3,7 @@
 #  getopt_tests.py:  testing the svn command line processing
 #
 #  Subversion is a tool for revision control.
-#  See https://subversion.apache.org for more information.
+#  See http://subversion.apache.org for more information.
 #
 # ====================================================================
 #    Licensed to the Apache Software Foundation (ASF) under one
@@ -60,7 +60,7 @@ def load_expected_output(basename):
   return exp_stdout, exp_stderr
 
 # With plaintext password storage enabled, `svn --version' emits a warning:
-warn_line_re = re.compile("^WARNING: Plaintext password storage")
+warn_line_re = re.compile("WARNING: Plaintext password storage")
 
 # This is a list of lines to delete.
 del_lines_res = [
@@ -81,7 +81,7 @@ del_lines_res = [
                  re.compile(r"\* Plaintext cache.*"),
                  re.compile(r"\* Gnome Keyring"),
                  re.compile(r"\* GPG-Agent"),
-                 re.compile(r"\* macOS Keychain"),
+                 re.compile(r"\* Mac OS X Keychain"),
                  re.compile(r"\* KWallet \(KDE\)"),
                 ]
 

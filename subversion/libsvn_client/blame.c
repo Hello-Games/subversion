@@ -499,7 +499,8 @@ file_rev_handler(void *baton, const char *path, svn_revnum_t revnum,
     SVN_ERR(svn_stream_open_readonly(&delta_baton->source_stream, frb->last_filename,
                                      frb->currpool, pool));
   else
-    delta_baton->source_stream = svn_stream_empty(pool);
+    /* Means empty stream below. */
+    delta_baton->source_stream = NULL;
   last_stream = svn_stream_disown(delta_baton->source_stream, pool);
 
   if (frb->include_merged_revisions && !merged_revision)
@@ -571,12 +572,10 @@ file_rev_handler(void *baton, const char *path, svn_revnum_t revnum,
     {
       /* Proper delta - get window handler for applying delta.
          svn_ra_get_file_revs2 will drive the delta editor. */
-      /* Keep historical behavior by disowning the stream; adjust if needed. */
-      svn_txdelta_apply2(svn_stream_disown(last_stream, frb->currpool),
-                         cur_stream, NULL, NULL,
-                         frb->currpool,
-                         &delta_baton->wrapped_handler,
-                         &delta_baton->wrapped_baton);
+      svn_txdelta_apply(last_stream, cur_stream, NULL, NULL,
+                        frb->currpool,
+                        &delta_baton->wrapped_handler,
+                        &delta_baton->wrapped_baton);
       *content_delta_handler = window_handler;
       *content_delta_baton = delta_baton;
     }
@@ -903,9 +902,9 @@ svn_client_blame6(svn_revnum_t *start_revnum_p,
       /* If we never created any blame for the original chain, create it now,
          with the most recent changed revision.  This could occur if a file
          was created on a branch and them merged to another branch.  This is
-         semantically a copy, and we want to use the revision on the branch as
+         semanticly a copy, and we want to use the revision on the branch as
          the most recently changed revision.  ### Is this really what we want
-         to do here?  Do the semantics of copy change? */
+         to do here?  Do the sematics of copy change? */
       if (!frb.chain->blame)
         frb.chain->blame = blame_create(frb.chain, frb.last_rev, 0);
 

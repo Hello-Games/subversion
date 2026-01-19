@@ -27,7 +27,7 @@ import org.apache.subversion.javahl.types.Version;
 import org.apache.subversion.javahl.types.RuntimeVersion;
 
 /**
- * Handles activities related to management of native resources
+ * Handles activities related to management of native resouces
  * (e.g. loading of native libraries).
  *
  * Public for backward compat.  This class may disappear in future versions
@@ -142,7 +142,7 @@ public class NativeResources
     private static final void init()
     {
         final int SVN_VER_MAJOR = 1;
-        final int SVN_VER_MINOR = 16;
+        final int SVN_VER_MINOR = 14;
         initNativeLibrary();
         version = new Version();
         if (!version.isAtLeast(SVN_VER_MAJOR, SVN_VER_MINOR, 0))

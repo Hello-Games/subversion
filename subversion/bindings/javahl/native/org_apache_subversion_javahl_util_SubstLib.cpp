@@ -195,7 +195,7 @@ Java_org_apache_subversion_javahl_util_SubstLib_translateOutputStream(
     jstring jurl, jstring jrepos_root_url,
     jobject jdate, jstring jauthor)
 {
-  SVN_JAVAHL_JNI_TRY(SubstLib, translateOutputStream)
+  SVN_JAVAHL_JNI_TRY(SubstLib, translateInputStream)
     {
       const Java::Env env(jenv);
 

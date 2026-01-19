@@ -781,15 +781,6 @@ const char *
 dav_svn__get_root_dir(request_rec *r)
 {
   dir_conf_t *conf;
-#if AP_MODULE_MAGIC_AT_LEAST(20120211, 139)
-  const char *base;
-
-  /* Inherit the root path from mod_dav's DavBasePath iff configured
-     where e.g. LocationMatch is used for the repos. */
-  base = dav_get_base_path(r);
-  if (base)
-    return base;
-#endif
 
   conf = ap_get_module_config(r->per_dir_config, &dav_svn_module);
   return conf->root_dir;
@@ -1234,7 +1225,7 @@ static int dav_svn__translate_name(request_rec *r)
   else
     {
       /* Retrieve path to repo and within repo for the request */
-      dav_error *err = dav_svn_split_uri(r, r->uri, dav_svn__get_root_dir(r),
+      dav_error *err = dav_svn_split_uri(r, r->uri, conf->root_dir,
                                          &ignore_cleaned_uri,
                                          &ignore_had_slash, &repos_basename,
                                          &ignore_relative_path, &repos_path);
@@ -1480,7 +1471,7 @@ register_hooks(apr_pool_t *pconf)
   /* translate_name hook is LAST so that it doesn't interfere with modules
    * like mod_alias that are MIDDLE. */
   ap_hook_translate_name(dav_svn__translate_name, NULL, NULL, APR_HOOK_LAST);
-  /* map_to_storage hook is LAST to avoid interfering with mod_http's
+  /* map_to_storage hook is LAST to avoid interferring with mod_http's
    * handling of OPTIONS and TRACE. */
   ap_hook_map_to_storage(dav_svn__map_to_storage, NULL, NULL, APR_HOOK_LAST);
 }

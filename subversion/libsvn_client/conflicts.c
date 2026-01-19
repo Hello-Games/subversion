@@ -1700,7 +1700,7 @@ find_moves(void *baton, svn_log_entry_t *log_entry, apr_pool_t *scratch_pool)
   return SVN_NO_ERROR;
 }
 
-/* Find all moves which occurred in repository history starting at
+/* Find all moves which occured in repository history starting at
  * REPOS_RELPATH@START_REV until END_REV (where START_REV > END_REV).
  * Return results in *MOVES_TABLE (see struct find_moves_baton for details). */
 static svn_error_t *
@@ -4905,7 +4905,7 @@ struct find_added_rev_baton
  * Finds the revision in which a node was added by tracing 'start'
  * revisions in location segments reported for the node.
  * If the PARENT_REPOS_RELPATH in the baton is not NULL, only consider
- * segments in which the node existed somewhere beneath this path. */
+ * segments in which the node existed somwhere beneath this path. */
 static svn_error_t *
 find_added_rev(svn_location_segment_t *segment,
                void *baton,
@@ -5372,7 +5372,7 @@ conflict_tree_get_details_incoming_add(svn_client_conflict_t *conflict,
       details->deleted_rev_author = NULL;
 
       /* Figure out whether this node was deleted later.
-       * ### Could probably optimize by inferring both addition and deletion
+       * ### Could probably optimize by infering both addition and deletion
        * ### from svn_ra_get_location_segments() call above. */
       SVN_ERR(svn_ra_get_latest_revnum(ra_session, &head_rev, scratch_pool));
       if (new_rev < head_rev)
@@ -5846,10 +5846,10 @@ conflict_tree_get_description_incoming_add(
 
 /* Details for tree conflicts involving incoming edits.
  * Note that we store an array of these. Each element corresponds to a
- * revision within the old/new range in which a modification occurred. */
+ * revision within the old/new range in which a modification occured. */
 struct conflict_tree_incoming_edit_details
 {
-  /* The revision in which the edit occurred. */
+  /* The revision in which the edit ocurred. */
   svn_revnum_t rev;
 
   /* The author of the revision. */
@@ -6411,55 +6411,6 @@ resolve_postpone(svn_client_conflict_option_t *option,
   return SVN_NO_ERROR; /* Nothing to do. */
 }
 
-static svn_error_t *
-begin_resolve(const char **root_abspath_p,
-              const char *local_abspath,
-              svn_client_ctx_t *ctx,
-              apr_pool_t *result_pool,
-              apr_pool_t *scratch_pool)
-{
-  const char *lock_abspath;
-  svn_error_t *err;
-
-  SVN_ERR(svn_wc__acquire_write_lock_for_resolve(&lock_abspath, ctx->wc_ctx,
-                                                 local_abspath,
-                                                 result_pool, scratch_pool));
-
-  /* This will open the RA session internally if needed. */
-  err = svn_client__textbase_sync(NULL, lock_abspath, TRUE, TRUE, ctx,
-                                  NULL, scratch_pool, scratch_pool);
-  if (err)
-    {
-      return svn_error_compose_create(
-               err,
-               svn_wc__release_write_lock(ctx->wc_ctx, lock_abspath,
-                                          scratch_pool));
-    }
-
-  *root_abspath_p = lock_abspath;
-  return SVN_NO_ERROR;
-}
-
-static svn_error_t *
-finish_resolve(const char *root_abspath,
-               svn_client_ctx_t *ctx,
-               svn_error_t *resolve_err,
-               apr_pool_t *scratch_pool)
-{
-  svn_error_t *err = resolve_err;
-
-  err = svn_error_compose_create(
-          err,
-          svn_client__textbase_sync(NULL, root_abspath, FALSE, TRUE, ctx,
-                                    NULL, scratch_pool, scratch_pool));
-
-  err = svn_error_compose_create(
-          err,
-          svn_wc__release_write_lock(ctx->wc_ctx, root_abspath, scratch_pool));
-
-  return err;
-}
-
 /* Implements conflict_option_resolve_func_t. */
 static svn_error_t *
 resolve_text_conflict(svn_client_conflict_option_t *option,
@@ -6477,8 +6428,9 @@ resolve_text_conflict(svn_client_conflict_option_t *option,
   conflict_choice = conflict_option_id_to_wc_conflict_choice(option_id);
   local_abspath = svn_client_conflict_get_local_abspath(conflict);
 
-  SVN_ERR(begin_resolve(&lock_abspath, local_abspath, ctx,
-                        scratch_pool, scratch_pool));
+  SVN_ERR(svn_wc__acquire_write_lock_for_resolve(&lock_abspath, ctx->wc_ctx,
+                                                 local_abspath,
+                                                 scratch_pool, scratch_pool));
   err = svn_wc__conflict_text_mark_resolved(ctx->wc_ctx,
                                             local_abspath,
                                             conflict_choice,
@@ -6487,7 +6439,9 @@ resolve_text_conflict(svn_client_conflict_option_t *option,
                                             ctx->notify_func2,
                                             ctx->notify_baton2,
                                             scratch_pool);
-  err = finish_resolve(lock_abspath, ctx, err, scratch_pool);
+  err = svn_error_compose_create(err, svn_wc__release_write_lock(ctx->wc_ctx,
+                                                                 lock_abspath,
+                                                                 scratch_pool));
   svn_io_sleep_for_timestamps(local_abspath, scratch_pool);
   SVN_ERR(err);
 
@@ -6520,15 +6474,18 @@ resolve_prop_conflict(svn_client_conflict_option_t *option,
   else
     merged_value = NULL;
 
-  SVN_ERR(begin_resolve(&lock_abspath, local_abspath, ctx,
-                        scratch_pool, scratch_pool));
+  SVN_ERR(svn_wc__acquire_write_lock_for_resolve(&lock_abspath, ctx->wc_ctx,
+                                                 local_abspath,
+                                                 scratch_pool, scratch_pool));
   err = svn_wc__conflict_prop_mark_resolved(ctx->wc_ctx, local_abspath,
                                             propname, conflict_choice,
                                             merged_value,
                                             ctx->notify_func2,
                                             ctx->notify_baton2,
                                             scratch_pool);
-  err = finish_resolve(lock_abspath, ctx, err, scratch_pool);
+  err = svn_error_compose_create(err, svn_wc__release_write_lock(ctx->wc_ctx,
+                                                                 lock_abspath,
+                                                                 scratch_pool));
   svn_io_sleep_for_timestamps(local_abspath, scratch_pool);
   SVN_ERR(err);
 
@@ -6593,8 +6550,9 @@ resolve_accept_current_wc_state(svn_client_conflict_option_t *option,
                              svn_dirent_local_style(local_abspath,
                                                     scratch_pool));
 
-  SVN_ERR(begin_resolve(&lock_abspath, local_abspath, ctx,
-                        scratch_pool, scratch_pool));
+  SVN_ERR(svn_wc__acquire_write_lock_for_resolve(&lock_abspath, ctx->wc_ctx,
+                                                 local_abspath,
+                                                 scratch_pool, scratch_pool));
 
   /* Resolve to current working copy state. */
   err = svn_wc__del_tree_conflict(ctx->wc_ctx, local_abspath, scratch_pool);
@@ -6607,7 +6565,10 @@ resolve_accept_current_wc_state(svn_client_conflict_option_t *option,
                                            scratch_pool),
                       scratch_pool);
 
-  SVN_ERR(finish_resolve(lock_abspath, ctx, err, scratch_pool));
+  err = svn_error_compose_create(err, svn_wc__release_write_lock(ctx->wc_ctx,
+                                                                 lock_abspath,
+                                                                 scratch_pool));
+  SVN_ERR(err);
 
   conflict->resolution_tree = option_id;
 
@@ -6627,8 +6588,9 @@ resolve_update_break_moved_away(svn_client_conflict_option_t *option,
 
   local_abspath = svn_client_conflict_get_local_abspath(conflict);
 
-  SVN_ERR(begin_resolve(&lock_abspath, local_abspath, ctx,
-                        scratch_pool, scratch_pool));
+  SVN_ERR(svn_wc__acquire_write_lock_for_resolve(&lock_abspath, ctx->wc_ctx,
+                                                 local_abspath,
+                                                 scratch_pool, scratch_pool));
   err = svn_wc__conflict_tree_update_break_moved_away(ctx->wc_ctx,
                                                       local_abspath,
                                                       ctx->cancel_func,
@@ -6636,7 +6598,10 @@ resolve_update_break_moved_away(svn_client_conflict_option_t *option,
                                                       ctx->notify_func2,
                                                       ctx->notify_baton2,
                                                       scratch_pool);
-  SVN_ERR(finish_resolve(lock_abspath, ctx, err, scratch_pool));
+  err = svn_error_compose_create(err, svn_wc__release_write_lock(ctx->wc_ctx,
+                                                                 lock_abspath,
+                                                                 scratch_pool));
+  SVN_ERR(err);
 
   conflict->resolution_tree = svn_client_conflict_option_get_id(option);
 
@@ -6656,8 +6621,9 @@ resolve_update_raise_moved_away(svn_client_conflict_option_t *option,
 
   local_abspath = svn_client_conflict_get_local_abspath(conflict);
 
-  SVN_ERR(begin_resolve(&lock_abspath, local_abspath, ctx,
-                        scratch_pool, scratch_pool));
+  SVN_ERR(svn_wc__acquire_write_lock_for_resolve(&lock_abspath, ctx->wc_ctx,
+                                                 local_abspath,
+                                                 scratch_pool, scratch_pool));
   err = svn_wc__conflict_tree_update_raise_moved_away(ctx->wc_ctx,
                                                       local_abspath,
                                                       ctx->cancel_func,
@@ -6665,7 +6631,10 @@ resolve_update_raise_moved_away(svn_client_conflict_option_t *option,
                                                       ctx->notify_func2,
                                                       ctx->notify_baton2,
                                                       scratch_pool);
-  SVN_ERR(finish_resolve(lock_abspath, ctx, err, scratch_pool));
+  err = svn_error_compose_create(err, svn_wc__release_write_lock(ctx->wc_ctx,
+                                                                 lock_abspath,
+                                                                 scratch_pool));
+  SVN_ERR(err);
 
   conflict->resolution_tree = svn_client_conflict_option_get_id(option);
 
@@ -6685,8 +6654,9 @@ resolve_update_moved_away_node(svn_client_conflict_option_t *option,
 
   local_abspath = svn_client_conflict_get_local_abspath(conflict);
 
-  SVN_ERR(begin_resolve(&lock_abspath, local_abspath, ctx,
-                        scratch_pool, scratch_pool));
+  SVN_ERR(svn_wc__acquire_write_lock_for_resolve(&lock_abspath, ctx->wc_ctx,
+                                                 local_abspath,
+                                                 scratch_pool, scratch_pool));
   err = svn_wc__conflict_tree_update_moved_away_node(ctx->wc_ctx,
                                                      local_abspath,
                                                      ctx->cancel_func,
@@ -6694,7 +6664,9 @@ resolve_update_moved_away_node(svn_client_conflict_option_t *option,
                                                      ctx->notify_func2,
                                                      ctx->notify_baton2,
                                                      scratch_pool);
-  err = finish_resolve(lock_abspath, ctx, err, scratch_pool);
+  err = svn_error_compose_create(err, svn_wc__release_write_lock(ctx->wc_ctx,
+                                                                 lock_abspath,
+                                                                 scratch_pool));
   svn_io_sleep_for_timestamps(local_abspath, scratch_pool);
   SVN_ERR(err);
 
@@ -6866,8 +6838,9 @@ resolve_incoming_add_ignore(svn_client_conflict_option_t *option,
   local_abspath = svn_client_conflict_get_local_abspath(conflict);
   operation = svn_client_conflict_get_operation(conflict);
 
-  SVN_ERR(begin_resolve(&lock_abspath, local_abspath, ctx,
-                        scratch_pool, scratch_pool));
+  SVN_ERR(svn_wc__acquire_write_lock_for_resolve(&lock_abspath, ctx->wc_ctx,
+                                                 local_abspath,
+                                                 scratch_pool, scratch_pool));
 
   if (operation == svn_wc_operation_update)
     {
@@ -6892,7 +6865,10 @@ resolve_incoming_add_ignore(svn_client_conflict_option_t *option,
                       scratch_pool);
 
 unlock_wc:
-  SVN_ERR(finish_resolve(lock_abspath, ctx, err, scratch_pool));
+  err = svn_error_compose_create(err, svn_wc__release_write_lock(ctx->wc_ctx,
+                                                                 lock_abspath,
+                                                                 scratch_pool));
+  SVN_ERR(err);
 
   conflict->resolution_tree = svn_client_conflict_option_get_id(option);
 
@@ -6941,7 +6917,7 @@ resolve_merge_incoming_added_file_text_update(
   local_abspath = svn_client_conflict_get_local_abspath(conflict);
   local_change = svn_client_conflict_get_local_change(conflict);
 
-  /* Set up temporary storage for the working version of file. */
+  /* Set up tempory storage for the working version of file. */
   SVN_ERR(svn_wc__get_tmpdir(&wc_tmpdir, ctx->wc_ctx, local_abspath,
                              scratch_pool, scratch_pool));
   SVN_ERR(svn_stream_open_unique(&working_file_tmp_stream,
@@ -6986,13 +6962,14 @@ resolve_merge_incoming_added_file_text_update(
                          apr_hash_make(scratch_pool), scratch_pool));
 
   /* ### The following WC modifications should be atomic. */
-  SVN_ERR(begin_resolve(&lock_abspath, local_abspath, ctx,
-                        scratch_pool, scratch_pool));
+  SVN_ERR(svn_wc__acquire_write_lock_for_resolve(&lock_abspath, ctx->wc_ctx,
+                                                 local_abspath,
+                                                 scratch_pool, scratch_pool));
 
   /* Revert the path in order to restore the repository's line of
    * history, which is part of the BASE tree. This revert operation
    * is why are being careful about not losing the temporary copy. */
-  err = svn_wc_revert7(ctx->wc_ctx, local_abspath, svn_depth_empty,
+  err = svn_wc_revert6(ctx->wc_ctx, local_abspath, svn_depth_empty,
                        FALSE, NULL, TRUE, FALSE,
                        TRUE /*added_keep_local*/,
                        NULL, NULL, /* no cancellation */
@@ -7002,7 +6979,7 @@ resolve_merge_incoming_added_file_text_update(
     goto unlock_wc;
 
   /* Perform the file merge. ### Merge into tempfile and then rename on top? */
-  err = svn_wc_merge6(&merge_content_outcome, &merge_props_outcome,
+  err = svn_wc_merge5(&merge_content_outcome, &merge_props_outcome,
                       ctx->wc_ctx, empty_file_abspath,
                       working_file_tmp_abspath, local_abspath,
                       NULL, NULL, NULL, /* labels */
@@ -7020,7 +6997,10 @@ unlock_wc:
               err, _("If needed, a backup copy of '%s' can be found at '%s'"),
               svn_dirent_local_style(local_abspath, scratch_pool),
               svn_dirent_local_style(working_file_tmp_abspath, scratch_pool));
-  err = finish_resolve(lock_abspath, ctx, err, scratch_pool);
+  err = svn_error_compose_create(err,
+                                 svn_wc__release_write_lock(ctx->wc_ctx,
+                                                            lock_abspath,
+                                                            scratch_pool));
   svn_io_sleep_for_timestamps(local_abspath, scratch_pool);
   SVN_ERR(err);
 
@@ -7128,14 +7108,18 @@ resolve_merge_incoming_added_file_text_merge(
                          apr_hash_make(scratch_pool), scratch_pool));
 
   /* ### The following WC modifications should be atomic. */
-  SVN_ERR(begin_resolve(&lock_abspath, local_abspath, ctx,
-                        scratch_pool, scratch_pool));
-  /* Resolve to current working copy state. svn_wc_merge6() requires this. */
+  SVN_ERR(svn_wc__acquire_write_lock_for_resolve(&lock_abspath, ctx->wc_ctx,
+                                                 local_abspath,
+                                                 scratch_pool, scratch_pool));
+  /* Resolve to current working copy state. svn_wc_merge5() requires this. */
   err = svn_wc__del_tree_conflict(ctx->wc_ctx, local_abspath, scratch_pool);
   if (err)
-    return finish_resolve(lock_abspath, ctx, err, scratch_pool);
+    return svn_error_compose_create(err,
+                                    svn_wc__release_write_lock(ctx->wc_ctx,
+                                                               lock_abspath,
+                                                               scratch_pool));
   /* Perform the file merge. ### Merge into tempfile and then rename on top? */
-  err = svn_wc_merge6(&merge_content_outcome, &merge_props_outcome,
+  err = svn_wc_merge5(&merge_content_outcome, &merge_props_outcome,
                       ctx->wc_ctx, empty_file_abspath,
                       incoming_new_tmp_abspath, local_abspath,
                       NULL, NULL, NULL, /* labels */
@@ -7146,7 +7130,9 @@ resolve_merge_incoming_added_file_text_merge(
                       NULL, NULL, /* conflict func/baton */
                       NULL, NULL, /* don't allow user to cancel here */
                       scratch_pool);
-  err = finish_resolve(lock_abspath, ctx, err, scratch_pool);
+  err = svn_error_compose_create(err, svn_wc__release_write_lock(ctx->wc_ctx,
+                                                                 lock_abspath,
+                                                                 scratch_pool));
   svn_io_sleep_for_timestamps(local_abspath, scratch_pool);
   SVN_ERR(err);
 
@@ -7210,7 +7196,7 @@ resolve_merge_incoming_added_file_replace_and_merge(
 
   local_abspath = svn_client_conflict_get_local_abspath(conflict);
 
-  /* Set up temporary storage for the working version of file. */
+  /* Set up tempory storage for the working version of file. */
   SVN_ERR(svn_wc__get_tmpdir(&wc_tmpdir, ctx->wc_ctx, local_abspath,
                              scratch_pool, scratch_pool));
   SVN_ERR(svn_stream_open_unique(&working_file_tmp_stream,
@@ -7261,8 +7247,9 @@ resolve_merge_incoming_added_file_replace_and_merge(
   /* Reset the stream in preparation for adding its content to WC. */
   SVN_ERR(svn_stream_reset(incoming_new_stream));
 
-  SVN_ERR(begin_resolve(&lock_abspath, local_abspath, ctx,
-                        scratch_pool, scratch_pool));
+  SVN_ERR(svn_wc__acquire_write_lock_for_resolve(&lock_abspath, ctx->wc_ctx,
+                                                 local_abspath,
+                                                 scratch_pool, scratch_pool));
 
   /* ### The following WC modifications should be atomic. */
 
@@ -7294,7 +7281,7 @@ resolve_merge_incoming_added_file_replace_and_merge(
       ctx->notify_func2(ctx->notify_baton2, notify, scratch_pool);
     }
 
-  /* Resolve to current working copy state. svn_wc_merge6() requires this. */
+  /* Resolve to current working copy state. svn_wc_merge5() requires this. */
   err = svn_wc__del_tree_conflict(ctx->wc_ctx, local_abspath, scratch_pool);
   if (err)
     goto unlock_wc;
@@ -7316,7 +7303,7 @@ resolve_merge_incoming_added_file_replace_and_merge(
     goto unlock_wc;
 
   /* Perform the file merge. */
-  err = svn_wc_merge6(&merge_content_outcome, &merge_props_outcome,
+  err = svn_wc_merge5(&merge_content_outcome, &merge_props_outcome,
                       ctx->wc_ctx, empty_file_abspath,
                       working_file_tmp_abspath, local_abspath,
                       NULL, NULL, NULL, /* labels */
@@ -7347,7 +7334,9 @@ resolve_merge_incoming_added_file_replace_and_merge(
     }
 
 unlock_wc:
-  err = finish_resolve(lock_abspath, ctx, err, scratch_pool);
+  err = svn_error_compose_create(err, svn_wc__release_write_lock(ctx->wc_ctx,
+                                                                 lock_abspath,
+                                                                 scratch_pool));
   svn_io_sleep_for_timestamps(local_abspath, scratch_pool);
   SVN_ERR(err);
 
@@ -7633,7 +7622,7 @@ merge_added_files(const char *local_abspath,
                          working_props, scratch_pool));
 
   /* Perform the file merge. */
-  SVN_ERR(svn_wc_merge6(&merge_content_outcome, &merge_props_outcome,
+  SVN_ERR(svn_wc_merge5(&merge_content_outcome, &merge_props_outcome,
                         ctx->wc_ctx, empty_file_abspath,
                         incoming_added_file_abspath, local_abspath,
                         NULL, NULL, NULL, /* labels */
@@ -7892,7 +7881,7 @@ resolve_merge_incoming_added_dir_merge(svn_client_conflict_option_t *option,
       if (details->added_rev == SVN_INVALID_REVNUM)
         return svn_error_createf(SVN_ERR_WC_CONFLICT_RESOLVER_FAILURE, NULL,
                                  _("Could not determine when '%s' was "
-                                   "added to the repository"),
+                                   "added the repository"),
                                  svn_dirent_local_style(local_abspath,
                                                         scratch_pool));
       rev1 = rev_below(details->added_rev);
@@ -7919,8 +7908,9 @@ resolve_merge_incoming_added_dir_merge(svn_client_conflict_option_t *option,
     }
 
   /* ### The following WC modifications should be atomic. */
-  SVN_ERR(begin_resolve(&lock_abspath, local_abspath, ctx,
-                        scratch_pool, scratch_pool));
+  SVN_ERR(svn_wc__acquire_write_lock_for_resolve(&lock_abspath, ctx->wc_ctx,
+                                                 local_abspath,
+                                                 scratch_pool, scratch_pool));
 
   /* ### wrap in a transaction */
   err = merge_newly_added_dir(added_repos_relpath,
@@ -7931,7 +7921,9 @@ resolve_merge_incoming_added_dir_merge(svn_client_conflict_option_t *option,
   if (!err)
     err = svn_wc__del_tree_conflict(ctx->wc_ctx, local_abspath, scratch_pool);
 
-  err = finish_resolve(lock_abspath, ctx, err, scratch_pool);
+  err = svn_error_compose_create(err, svn_wc__release_write_lock(ctx->wc_ctx,
+                                                                 lock_abspath,
+                                                                 scratch_pool));
   svn_io_sleep_for_timestamps(local_abspath, scratch_pool);
   SVN_ERR(err);
 
@@ -7965,8 +7957,9 @@ resolve_update_incoming_added_dir_merge(svn_client_conflict_option_t *option,
   if (local_change == svn_wc_conflict_reason_unversioned)
     {
       char *parent_abspath = svn_dirent_dirname(local_abspath, scratch_pool);
-      SVN_ERR(begin_resolve(&lock_abspath, parent_abspath, ctx,
-                            scratch_pool, scratch_pool));
+      SVN_ERR(svn_wc__acquire_write_lock_for_resolve(
+                &lock_abspath, ctx->wc_ctx, parent_abspath,
+                scratch_pool, scratch_pool));
 
       /* The update/switch operation has added the incoming versioned
        * directory as a deleted op-depth layer. We can revert this layer
@@ -7977,7 +7970,7 @@ resolve_update_incoming_added_dir_merge(svn_client_conflict_option_t *option,
        * files with files from the repository is impossible because there is
        * no known merge base. No unversioned data will be lost, and any
        * differences to files in the repository will show up in 'svn diff'. */
-      err = svn_wc_revert7(ctx->wc_ctx, local_abspath, svn_depth_infinity,
+      err = svn_wc_revert6(ctx->wc_ctx, local_abspath, svn_depth_infinity,
                            FALSE, NULL, TRUE, TRUE /* metadata_only */,
                            TRUE /*added_keep_local*/,
                            NULL, NULL, /* no cancellation */
@@ -7986,8 +7979,9 @@ resolve_update_incoming_added_dir_merge(svn_client_conflict_option_t *option,
     }
   else
     {
-      SVN_ERR(begin_resolve(&lock_abspath, local_abspath, ctx,
-                            scratch_pool, scratch_pool));
+      SVN_ERR(svn_wc__acquire_write_lock_for_resolve(
+                &lock_abspath, ctx->wc_ctx, local_abspath,
+                scratch_pool, scratch_pool));
       err = svn_wc__conflict_tree_update_local_add(ctx->wc_ctx,
                                                    local_abspath,
                                                    ctx->cancel_func,
@@ -7997,7 +7991,10 @@ resolve_update_incoming_added_dir_merge(svn_client_conflict_option_t *option,
                                                    scratch_pool);
     }
 
-  SVN_ERR(finish_resolve(lock_abspath, ctx, err, scratch_pool));
+  err = svn_error_compose_create(err, svn_wc__release_write_lock(ctx->wc_ctx,
+                                                                 lock_abspath,
+                                                                 scratch_pool));
+  SVN_ERR(err);
 
   return SVN_NO_ERROR;
 }
@@ -8044,10 +8041,11 @@ merge_incoming_added_dir_replace(svn_client_conflict_option_t *option,
 
   /* ### The following WC modifications should be atomic. */
 
-  SVN_ERR(begin_resolve(&lock_abspath,
-                        svn_dirent_dirname(local_abspath,
-                                           scratch_pool),
-                        ctx, scratch_pool, scratch_pool));
+  SVN_ERR(svn_wc__acquire_write_lock_for_resolve(&lock_abspath, ctx->wc_ctx,
+                                                 svn_dirent_dirname(
+                                                   local_abspath,
+                                                   scratch_pool),
+                                                 scratch_pool, scratch_pool));
 
   /* Remove the working directory. */
   err = svn_wc_delete4(ctx->wc_ctx, local_abspath, FALSE, FALSE,
@@ -8138,7 +8136,9 @@ merge_incoming_added_dir_replace(svn_client_conflict_option_t *option,
     }
 
 unlock_wc:
-  err = finish_resolve(lock_abspath, ctx, err, scratch_pool);
+  err = svn_error_compose_create(err, svn_wc__release_write_lock(ctx->wc_ctx,
+                                                                 lock_abspath,
+                                                                 scratch_pool));
   svn_io_sleep_for_timestamps(local_abspath, scratch_pool);
   SVN_ERR(err);
 
@@ -8388,8 +8388,9 @@ resolve_incoming_delete_ignore(svn_client_conflict_option_t *option,
   option_id = svn_client_conflict_option_get_id(option);
   local_abspath = svn_client_conflict_get_local_abspath(conflict);
 
-  SVN_ERR(begin_resolve(&lock_abspath, local_abspath, ctx,
-                        scratch_pool, scratch_pool));
+  SVN_ERR(svn_wc__acquire_write_lock_for_resolve(&lock_abspath, ctx->wc_ctx,
+                                                 local_abspath,
+                                                 scratch_pool, scratch_pool));
 
   err = verify_local_state_for_incoming_delete(conflict, option, ctx,
                                                scratch_pool);
@@ -8408,7 +8409,10 @@ resolve_incoming_delete_ignore(svn_client_conflict_option_t *option,
                       scratch_pool);
 
 unlock_wc:
-  SVN_ERR(finish_resolve(lock_abspath, ctx, err, scratch_pool));
+  err = svn_error_compose_create(err, svn_wc__release_write_lock(ctx->wc_ctx,
+                                                                 lock_abspath,
+                                                                 scratch_pool));
+  SVN_ERR(err);
 
   conflict->resolution_tree = option_id;
 
@@ -8433,8 +8437,9 @@ resolve_incoming_delete_accept(svn_client_conflict_option_t *option,
 
   /* Deleting a node requires a lock on the node's parent. */
   parent_abspath = svn_dirent_dirname(local_abspath, scratch_pool);
-  SVN_ERR(begin_resolve(&lock_abspath, parent_abspath, ctx,
-                        scratch_pool, scratch_pool));
+  SVN_ERR(svn_wc__acquire_write_lock_for_resolve(&lock_abspath, ctx->wc_ctx,
+                                                 parent_abspath,
+                                                 scratch_pool, scratch_pool));
 
   err = verify_local_state_for_incoming_delete(conflict, option, ctx,
                                                scratch_pool);
@@ -8473,7 +8478,10 @@ resolve_incoming_delete_accept(svn_client_conflict_option_t *option,
                       scratch_pool);
 
 unlock_wc:
-  SVN_ERR(finish_resolve(lock_abspath, ctx, err, scratch_pool));
+  err = svn_error_compose_create(err, svn_wc__release_write_lock(ctx->wc_ctx,
+                                                                 lock_abspath,
+                                                                 scratch_pool));
+  SVN_ERR(err);
 
   conflict->resolution_tree = option_id;
 
@@ -8608,11 +8616,12 @@ resolve_incoming_move_file_text_merge(svn_client_conflict_option_t *option,
     merge_source_abspath = victim_abspath;
 
   /* ### The following WC modifications should be atomic. */
-  SVN_ERR(begin_resolve(&lock_abspath,
-                        svn_dirent_get_longest_ancestor(victim_abspath,
-                                                        moved_to_abspath,
-                                                        scratch_pool),
-                        ctx, scratch_pool, scratch_pool));
+  SVN_ERR(svn_wc__acquire_write_lock_for_resolve(
+            &lock_abspath, ctx->wc_ctx,
+            svn_dirent_get_longest_ancestor(victim_abspath,
+                                            moved_to_abspath,
+                                            scratch_pool),
+            scratch_pool, scratch_pool));
 
   if (local_change != svn_wc_conflict_reason_missing)
     {
@@ -8730,7 +8739,7 @@ resolve_incoming_move_file_text_merge(svn_client_conflict_option_t *option,
     SVN_ERR_MALFUNCTION();
 
   /* Perform the file merge. */
-  err = svn_wc_merge6(&merge_content_outcome, &merge_props_outcome,
+  err = svn_wc_merge5(&merge_content_outcome, &merge_props_outcome,
                       ctx->wc_ctx, ancestor_abspath,
                       incoming_abspath, moved_to_abspath,
                       NULL, NULL, NULL, /* labels */
@@ -8808,7 +8817,10 @@ unlock_wc:
               err, _("If needed, a backup copy of '%s' can be found at '%s'"),
               svn_dirent_local_style(moved_to_abspath, scratch_pool),
               svn_dirent_local_style(incoming_abspath, scratch_pool));
-  SVN_ERR(finish_resolve(lock_abspath, ctx, err, scratch_pool));
+  err = svn_error_compose_create(err, svn_wc__release_write_lock(ctx->wc_ctx,
+                                                                 lock_abspath,
+                                                                 scratch_pool));
+  SVN_ERR(err);
 
   return SVN_NO_ERROR;
 }
@@ -8922,11 +8934,12 @@ resolve_both_moved_file_text_merge(svn_client_conflict_option_t *option,
     APR_ARRAY_IDX(local_moves, local_details->wc_move_target_idx, const char *);
 
   /* ### The following WC modifications should be atomic. */
-  SVN_ERR(begin_resolve(&lock_abspath,
-                        svn_dirent_get_longest_ancestor(victim_abspath,
-                                                        local_moved_to_abspath,
-                                                        scratch_pool),
-                        ctx, scratch_pool, scratch_pool));
+  SVN_ERR(svn_wc__acquire_write_lock_for_resolve(
+            &lock_abspath, ctx->wc_ctx,
+            svn_dirent_get_longest_ancestor(victim_abspath,
+                                            local_moved_to_abspath,
+                                            scratch_pool),
+            scratch_pool, scratch_pool));
 
    /* Get a copy of the incoming moved item's properties. */
   err = svn_wc_prop_list2(&incoming_props, ctx->wc_ctx,
@@ -8949,7 +8962,7 @@ resolve_both_moved_file_text_merge(svn_client_conflict_option_t *option,
     goto unlock_wc;
 
   /* Perform the file merge. */
-  err = svn_wc_merge6(&merge_content_outcome, &merge_props_outcome,
+  err = svn_wc_merge5(&merge_content_outcome, &merge_props_outcome,
                       ctx->wc_ctx, ancestor_abspath,
                       incoming_moved_to_abspath, local_moved_to_abspath,
                       NULL, NULL, NULL, /* labels */
@@ -8982,7 +8995,7 @@ resolve_both_moved_file_text_merge(svn_client_conflict_option_t *option,
     }
 
   /* Revert local addition of the incoming move's target. */
-  err = svn_wc_revert7(ctx->wc_ctx, incoming_moved_to_abspath,
+  err = svn_wc_revert6(ctx->wc_ctx, incoming_moved_to_abspath,
                        svn_depth_infinity, FALSE, NULL, TRUE, FALSE,
                        FALSE /*added_keep_local*/,
                        NULL, NULL, /* no cancellation */
@@ -9009,7 +9022,10 @@ resolve_both_moved_file_text_merge(svn_client_conflict_option_t *option,
   conflict->resolution_tree = option_id;
 
 unlock_wc:
-  SVN_ERR(finish_resolve(lock_abspath, ctx, err, scratch_pool));
+  err = svn_error_compose_create(err, svn_wc__release_write_lock(ctx->wc_ctx,
+                                                                 lock_abspath,
+                                                                 scratch_pool));
+  SVN_ERR(err);
 
   return SVN_NO_ERROR;
 }
@@ -9093,11 +9109,12 @@ resolve_both_moved_dir_merge(svn_client_conflict_option_t *option,
     APR_ARRAY_IDX(local_moves, local_details->wc_move_target_idx, const char *);
 
   /* ### The following WC modifications should be atomic. */
-  SVN_ERR(begin_resolve(&lock_abspath,
-                        svn_dirent_get_longest_ancestor(victim_abspath,
-                                                        local_moved_to_abspath,
-                                                        scratch_pool),
-                        ctx, scratch_pool, scratch_pool));
+  SVN_ERR(svn_wc__acquire_write_lock_for_resolve(
+            &lock_abspath, ctx->wc_ctx,
+            svn_dirent_get_longest_ancestor(victim_abspath,
+                                            local_moved_to_abspath,
+                                            scratch_pool),
+            scratch_pool, scratch_pool));
 
   /* Perform the merge. */
   incoming_old_url = apr_pstrcat(scratch_pool, repos_root_url, "/",
@@ -9126,7 +9143,7 @@ resolve_both_moved_dir_merge(svn_client_conflict_option_t *option,
     goto unlock_wc;
 
   /* Revert local addition of the incoming move's target. */
-  err = svn_wc_revert7(ctx->wc_ctx, incoming_moved_to_abspath,
+  err = svn_wc_revert6(ctx->wc_ctx, incoming_moved_to_abspath,
                        svn_depth_infinity, FALSE, NULL, TRUE, FALSE,
                        FALSE /*added_keep_local*/,
                        NULL, NULL, /* no cancellation */
@@ -9153,7 +9170,10 @@ resolve_both_moved_dir_merge(svn_client_conflict_option_t *option,
   conflict->resolution_tree = option_id;
 
 unlock_wc:
-  SVN_ERR(finish_resolve(lock_abspath, ctx, err, scratch_pool));
+  err = svn_error_compose_create(err, svn_wc__release_write_lock(ctx->wc_ctx,
+                                                                 lock_abspath,
+                                                                 scratch_pool));
+  SVN_ERR(err);
 
   return SVN_NO_ERROR;
 }
@@ -9238,14 +9258,15 @@ resolve_both_moved_dir_move_merge(svn_client_conflict_option_t *option,
     APR_ARRAY_IDX(local_moves, local_details->wc_move_target_idx, const char *);
 
   /* ### The following WC modifications should be atomic. */
-  SVN_ERR(begin_resolve(&lock_abspath,
-                        svn_dirent_get_longest_ancestor(victim_abspath,
-                                                        local_moved_to_abspath,
-                                                        scratch_pool),
-                        ctx, scratch_pool, scratch_pool));
+  SVN_ERR(svn_wc__acquire_write_lock_for_resolve(
+            &lock_abspath, ctx->wc_ctx,
+            svn_dirent_get_longest_ancestor(victim_abspath,
+                                            local_moved_to_abspath,
+                                            scratch_pool),
+            scratch_pool, scratch_pool));
 
   /* Revert the incoming move target directory. */
-  err = svn_wc_revert7(ctx->wc_ctx, incoming_moved_to_abspath,
+  err = svn_wc_revert6(ctx->wc_ctx, incoming_moved_to_abspath,
                        svn_depth_infinity,
                        FALSE, NULL, TRUE, FALSE,
                        TRUE /*added_keep_local*/,
@@ -9311,7 +9332,10 @@ resolve_both_moved_dir_move_merge(svn_client_conflict_option_t *option,
   conflict->resolution_tree = option_id;
 
 unlock_wc:
-  SVN_ERR(finish_resolve(lock_abspath, ctx, err, scratch_pool));
+  err = svn_error_compose_create(err, svn_wc__release_write_lock(ctx->wc_ctx,
+                                                                 lock_abspath,
+                                                                 scratch_pool));
+  SVN_ERR(err);
 
   return SVN_NO_ERROR;
 }
@@ -9396,11 +9420,12 @@ resolve_incoming_move_dir_merge(svn_client_conflict_option_t *option,
 
   /* ### The following WC modifications should be atomic. */
 
-  SVN_ERR(begin_resolve(&lock_abspath,
-                        svn_dirent_get_longest_ancestor(local_abspath,
-                                                        moved_to_abspath,
-                                                        scratch_pool),
-                        ctx, scratch_pool, scratch_pool));
+  SVN_ERR(svn_wc__acquire_write_lock_for_resolve(
+            &lock_abspath, ctx->wc_ctx,
+            svn_dirent_get_longest_ancestor(local_abspath,
+                                            moved_to_abspath,
+                                            scratch_pool),
+            scratch_pool, scratch_pool));
 
   err = svn_wc__node_get_origin(&is_copy, &moved_to_peg_rev,
                                 &moved_to_repos_relpath,
@@ -9445,7 +9470,7 @@ resolve_incoming_move_dir_merge(svn_client_conflict_option_t *option,
       svn_opt_revision_t incoming_new_opt_rev;
 
       /* Revert the incoming move target directory. */
-      err = svn_wc_revert7(ctx->wc_ctx, moved_to_abspath, svn_depth_infinity,
+      err = svn_wc_revert6(ctx->wc_ctx, moved_to_abspath, svn_depth_infinity,
                            FALSE, NULL, TRUE, FALSE,
                            TRUE /*added_keep_local*/,
                            NULL, NULL, /* no cancellation */
@@ -9539,7 +9564,10 @@ resolve_incoming_move_dir_merge(svn_client_conflict_option_t *option,
   conflict->resolution_tree = option_id;
 
 unlock_wc:
-  SVN_ERR(finish_resolve(lock_abspath, ctx, err, scratch_pool));
+  err = svn_error_compose_create(err, svn_wc__release_write_lock(ctx->wc_ctx,
+                                                                 lock_abspath,
+                                                                 scratch_pool));
+  SVN_ERR(err);
 
   return SVN_NO_ERROR;
 }
@@ -9661,14 +9689,15 @@ resolve_local_move_file_merge(svn_client_conflict_option_t *option,
                          scratch_pool));
 
   /* ### The following WC modifications should be atomic. */
-  SVN_ERR(begin_resolve(&lock_abspath,
-                        svn_dirent_get_longest_ancestor(conflict->local_abspath,
-                                                        merge_target_abspath,
-                                                        scratch_pool),
-                        ctx, scratch_pool, scratch_pool));
+  SVN_ERR(svn_wc__acquire_write_lock_for_resolve(
+            &lock_abspath, ctx->wc_ctx,
+            svn_dirent_get_longest_ancestor(conflict->local_abspath,
+                                            merge_target_abspath,
+                                            scratch_pool),
+            scratch_pool, scratch_pool));
 
   /* Perform the file merge. */
-  err = svn_wc_merge6(&merge_content_outcome, &merge_props_outcome,
+  err = svn_wc_merge5(&merge_content_outcome, &merge_props_outcome,
                       ctx->wc_ctx,
                       ancestor_tmp_abspath, incoming_tmp_abspath,
                       merge_target_abspath,
@@ -9683,11 +9712,19 @@ resolve_local_move_file_merge(svn_client_conflict_option_t *option,
                       scratch_pool);
   svn_io_sleep_for_timestamps(merge_target_abspath, scratch_pool);
   if (err)
-    return finish_resolve(lock_abspath, ctx, err, scratch_pool);
+    return svn_error_compose_create(err,
+                                    svn_wc__release_write_lock(ctx->wc_ctx,
+                                                               lock_abspath,
+                                                               scratch_pool));
 
   err = svn_wc__del_tree_conflict(ctx->wc_ctx, conflict->local_abspath,
                                   scratch_pool);
-  SVN_ERR(finish_resolve(lock_abspath, ctx, err, scratch_pool));
+  err = svn_error_compose_create(err,
+                                 svn_wc__release_write_lock(ctx->wc_ctx,
+                                                            lock_abspath,
+                                                            scratch_pool));
+  if (err)
+    return svn_error_trace(err);
 
   if (ctx->notify_func2)
     {
@@ -9768,11 +9805,12 @@ resolve_local_move_dir_merge(svn_client_conflict_option_t *option,
                                          const char *);
 
   /* ### The following WC modifications should be atomic. */
-  SVN_ERR(begin_resolve(&lock_abspath,
-                        svn_dirent_get_longest_ancestor(conflict->local_abspath,
-                                                        merge_target_abspath,
-                                                        scratch_pool),
-                        ctx, scratch_pool, scratch_pool));
+  SVN_ERR(svn_wc__acquire_write_lock_for_resolve(
+            &lock_abspath, ctx->wc_ctx,
+            svn_dirent_get_longest_ancestor(conflict->local_abspath,
+                                            merge_target_abspath,
+                                            scratch_pool),
+            scratch_pool, scratch_pool));
 
   /* Resolve to current working copy state.
    * svn_client__merge_locked() requires this. */
@@ -9803,7 +9841,12 @@ resolve_local_move_dir_merge(svn_client_conflict_option_t *option,
                                  NULL, ctx, scratch_pool, scratch_pool);
 unlock_wc:
   svn_io_sleep_for_timestamps(merge_target_abspath, scratch_pool);
-  SVN_ERR(finish_resolve(lock_abspath, ctx, err, scratch_pool));
+  err = svn_error_compose_create(err,
+                                 svn_wc__release_write_lock(ctx->wc_ctx,
+                                                            lock_abspath,
+                                                            scratch_pool));
+  if (err)
+    return svn_error_trace(err);
 
   if (ctx->notify_func2)
     {
@@ -11065,7 +11108,7 @@ configure_option_sibling_move_merge(svn_client_conflict_t *conflict,
 struct conflict_tree_update_local_moved_away_details {
   /*
    * This array consists of "const char *" absolute paths to working copy
-   * nodes which are uncommitted copies and correspond to the repository path
+   * nodes which are uncomitted copies and correspond to the repository path
    * of the conflict victim.
    * Each such working copy node is a potential local move target which can
    * be chosen to find a suitable merge target when resolving a tree conflict.
@@ -11189,11 +11232,12 @@ resolve_both_moved_file_update_keep_local_move(
                   local_details->preferred_move_target_idx, const char *);
 
   /* ### The following WC modifications should be atomic. */
-  SVN_ERR(begin_resolve(&lock_abspath,
-                        svn_dirent_get_longest_ancestor(victim_abspath,
-                                                        local_moved_to_abspath,
-                                                        scratch_pool),
-                        ctx, scratch_pool, scratch_pool));
+  SVN_ERR(svn_wc__acquire_write_lock_for_resolve(
+            &lock_abspath, ctx->wc_ctx,
+            svn_dirent_get_longest_ancestor(victim_abspath,
+                                            local_moved_to_abspath,
+                                            scratch_pool),
+            scratch_pool, scratch_pool));
 
    /* Get a copy of the incoming moved item's properties. */
   err = svn_wc_prop_list2(&incoming_props, ctx->wc_ctx,
@@ -11216,7 +11260,7 @@ resolve_both_moved_file_update_keep_local_move(
     goto unlock_wc;
 
   /* Perform the file merge. */
-  err = svn_wc_merge6(&merge_content_outcome, &merge_props_outcome,
+  err = svn_wc_merge5(&merge_content_outcome, &merge_props_outcome,
                       ctx->wc_ctx, ancestor_abspath,
                       incoming_moved_to_abspath, local_moved_to_abspath,
                       NULL, NULL, NULL, /* labels */
@@ -11282,7 +11326,10 @@ resolve_both_moved_file_update_keep_local_move(
   conflict->resolution_tree = option_id;
 
 unlock_wc:
-  SVN_ERR(finish_resolve(lock_abspath, ctx, err, scratch_pool));
+  err = svn_error_compose_create(err, svn_wc__release_write_lock(ctx->wc_ctx,
+                                                                 lock_abspath,
+                                                                 scratch_pool));
+  SVN_ERR(err);
 
   return SVN_NO_ERROR;
 }
@@ -11396,11 +11443,12 @@ resolve_both_moved_file_update_keep_incoming_move(
                   local_details->preferred_move_target_idx, const char *);
 
   /* ### The following WC modifications should be atomic. */
-  SVN_ERR(begin_resolve(&lock_abspath,
-                        svn_dirent_get_longest_ancestor(victim_abspath,
-                                                        local_moved_to_abspath,
-                                                        scratch_pool),
-                        ctx, scratch_pool, scratch_pool));
+  SVN_ERR(svn_wc__acquire_write_lock_for_resolve(
+            &lock_abspath, ctx->wc_ctx,
+            svn_dirent_get_longest_ancestor(victim_abspath,
+                                            local_moved_to_abspath,
+                                            scratch_pool),
+            scratch_pool, scratch_pool));
 
    /* Get a copy of the incoming moved item's properties. */
   err = svn_wc_prop_list2(&incoming_props, ctx->wc_ctx,
@@ -11423,7 +11471,7 @@ resolve_both_moved_file_update_keep_incoming_move(
     goto unlock_wc;
 
   /* Perform the file merge. */
-  err = svn_wc_merge6(&merge_content_outcome, &merge_props_outcome,
+  err = svn_wc_merge5(&merge_content_outcome, &merge_props_outcome,
                       ctx->wc_ctx, ancestor_abspath,
                       local_moved_to_abspath, incoming_moved_to_abspath,
                       NULL, NULL, NULL, /* labels */
@@ -11457,7 +11505,7 @@ resolve_both_moved_file_update_keep_incoming_move(
 
   /* Revert the copy-half of the local move. The delete-half of this move
    * has already been deleted during the update/switch operation. */
-  err = svn_wc_revert7(ctx->wc_ctx, local_moved_to_abspath, svn_depth_empty,
+  err = svn_wc_revert6(ctx->wc_ctx, local_moved_to_abspath, svn_depth_empty,
                        FALSE, NULL, TRUE, FALSE,
                        TRUE /*added_keep_local*/,
                        NULL, NULL, /* no cancellation */
@@ -11484,7 +11532,10 @@ resolve_both_moved_file_update_keep_incoming_move(
   conflict->resolution_tree = option_id;
 
 unlock_wc:
-  SVN_ERR(finish_resolve(lock_abspath, ctx, err, scratch_pool));
+  err = svn_error_compose_create(err, svn_wc__release_write_lock(ctx->wc_ctx,
+                                                                 lock_abspath,
+                                                                 scratch_pool));
+  SVN_ERR(err);
 
   return SVN_NO_ERROR;
 }

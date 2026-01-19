@@ -3,7 +3,7 @@
 #  svnadmin_tests.py:  testing the 'svnadmin' tool.
 #
 #  Subversion is a tool for revision control.
-#  See https://subversion.apache.org for more information.
+#  See http://subversion.apache.org for more information.
 #
 # ====================================================================
 #    Licensed to the Apache Software Foundation (ASF) under one
@@ -1729,7 +1729,7 @@ def verify_non_utf8_paths(sbox):
       # also fix up the 'created path' field
       fp_new.write(b"cpath: /\xE6\n")
     elif line == b"_0.0.t0-0 add-file true true /A\n":
-      # and another occurrence
+      # and another occurrance
       fp_new.write(b"_0.0.t0-0 add-file true true /\xE6\n")
     else:
       fp_new.write(line)
@@ -3180,7 +3180,7 @@ def load_txdelta(sbox):
 
   sbox.build(empty=True)
 
-  # This dumpfile produced a BDB repository that generated checksum
+  # This dumpfile produced a BDB repository that generated cheksum
   # mismatches on read caused by the improper handling of
   # svn_txdelta_target ops.  The bug was fixed by r1640832.
 

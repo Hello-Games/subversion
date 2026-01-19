@@ -16,8 +16,7 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-# detect-backport-conflicts.yml -- Configuration for backportbot 
-#   GitHub Action workflow.
+# autoconf.yml -- Configuration for autoconf GitHub Action workflow.
 #
 
 name: backportbot

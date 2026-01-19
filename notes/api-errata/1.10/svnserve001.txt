@@ -1,4 +1,4 @@
-API ERRATA -- $Id$
+API ERRATA -- $Id: svnserve001.txt 1803188 2017-07-27 14:08:49Z danielsh $
 
 Root Cause of Errata: design error
  Library(s) Affected: svnserve.conf

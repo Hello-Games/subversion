@@ -3,7 +3,7 @@
                           A Quick Guide
                ======================================
 
-$LastChangedDate$
+$LastChangedDate: 2023-07-27 05:00:03 +0100 (Thu, 27 Jul 2023) $
 
 
 Contents:
@@ -20,7 +20,6 @@ Contents:
        C. Building under Unix in Different Directories
        D. Installing from a Zip or Installer File under Windows
        E. Building the Latest Source under Windows
-       F. Building using CMake
 
    III. BUILDING A SUBVERSION SERVER
        A. Setting Up Apache Httpd
@@ -29,7 +28,11 @@ Contents:
        D. Running and Testing
        E. Alternative:  'svnserve' and ra_svn
 
-    IV. PROGRAMMING LANGUAGE BINDINGS (PYTHON, PERL, RUBY, JAVA)
+    IV. PLATFORM-SPECIFIC ISSUES
+       A. Windows XP
+       B. Mac OS X
+
+     V. PROGRAMMING LANGUAGE BINDINGS (PYTHON, PERL, RUBY, JAVA)
 
 
 
@@ -279,7 +282,7 @@ I.    INTRODUCTION
 
       2.  SQLite  (REQUIRED)
 
-      Subversion requires SQLite version 3.24.0 or above.  You can meet this
+      Subversion requires SQLite version 3.8.2 or above.  You can meet this
       dependency several ways:
         * Use an SQLite amalgamation file.
         * Specify an SQLite installation to use.
@@ -442,6 +445,14 @@ I.    INTRODUCTION
       need to use a different path, of course.  Note that in order for
       the detection to succeed, the dynamic linker must be able to find
       the libraries at configure time.
+
+      If you are on the Windows platform and want to build Subversion,
+      a precompiled version of the Berkeley DB library is available for
+      download at the Subversion web site "Documents & files" area:
+
+          http://subversion.tigris.org/servlets/ProjectDocumentList?folderID=688
+
+      Look in the "Releases > Windows > Windows BDB" section.
 
 
       10. Cyrus SASL library (OPTIONAL)
@@ -614,7 +625,7 @@ I.    INTRODUCTION
 
       22. LZ4 (OPTIONAL)
 
-      Subversion uses LZ4 compression library version r129 or above. Configure
+      Subversion uses LZ4 compression libary version r129 or above. Configure
       will attempt to locate the system library by default using pkg-config
       and known paths.
 
@@ -655,7 +666,7 @@ I.    INTRODUCTION
 
       The primary documentation for Subversion is the free book
       "Version Control with Subversion", a.k.a. "The Subversion Book",
-      obtainable from https://svnbook.red-bean.com/.
+      obtainable from http://svnbook.red-bean.com/.
 
       Various additional documentation exists in the doc/ subdirectory of
       the Subversion source.  See the file doc/README for more information.
@@ -664,19 +675,6 @@ I.    INTRODUCTION
 
 II.   INSTALLATION
       ============
-
-      Subversion support three different build systems:
-      - Autoconf/make, for Unix builds
-      - Visual Studio vcproj, for Windows builds
-      - CMake, for both Unix and Windows
-
-      The first two have been in use since 2001. Sections A-E below describe
-      the classic build system.
-
-      The CMake build system was created in 2024 and is still under
-      development. It will be included in Subversion 1.15 and is expected to
-      be the default build system starting with Subversion 1.16. Section F
-      below describes the CMake build system.
 
   A.  Building from a Tarball
       ------------------------------
@@ -856,14 +854,15 @@ II.   INSTALLATION
       * Python 2.7 or higher, downloaded from https://www.python.org/ which is
         used to generate the project files.
       * Perl 5.8 or higher from https://www.perl.org/get.html
-      * Awk is needed to compile Apache. Source code is available in 
-        tools\dev\awk, run the buildwin.bat program to compile.
+      * Awk (from https://www.cs.princeton.edu/~bwk/btl.mirror/awk95.exe) is
+        needed to compile Apache.  Note that this is the actual awk program,
+        not an installer - just rename it to awk.exe and it is ready to use.
       * Apache apr, apr-util, and optionally apr-iconv libraries, version
         1.4 or later (1.2 for apr-iconv). If you are building from a Subversion
         checkout and have not downloaded Apache 2, then get these 3 libraries
         from https://www.apache.org/dist/apr/.
-      * SQLite 3.24.0 or higher from https://www.sqlite.org/download.html
-        (3.39.4 or higher recommended)
+      * SQLite 3.8.2 or higher from https://www.sqlite.org/download.html
+        (3.8.11.1 or higher recommended)
       * ZLib 1.2 or higher is required and can be obtained from
         http://www.zlib.net/
       * Either a Subversion client binary from
@@ -880,7 +879,7 @@ II.   INSTALLATION
         are available from
         http://www.oracle.com/technetwork/database/database-technologies/berkeleydb/downloads/index-082944.html
         (Version 4.4.20 or in specific cases some higher version recommended)
-        For more information see Section I.C.9.
+        For more information see Section I.C.7.
       * [Optional] Openssl can be obtained from https://www.openssl.org/source/
       * [Optional] NASM can be obtained from http://www.nasm.us/
       * [Optional] A modified version of GNU libintl, called
@@ -898,7 +897,7 @@ II.   INSTALLATION
       The Apache Serf library supports secure connections with OpenSSL
       and on-the-wire compression with zlib. If you want to use the
       secure connections feature, you should pass the option
-      "--with-openssl" to the gen-make.py script. See Section I.C.7 for
+      "--with-openssl" to the gen-make.py script. See Section I.C.6 for
       more details.
 
   E.3 Preparation
@@ -1189,66 +1188,6 @@ II.   INSTALLATION
 
       C:>python win-tests.py -c -r -v -u http://localhost
       C:>cd ..
-
-
-  F.  Building using CMake
-      --------------------
-
-      Get the sources, either a release tarball or by checking out the
-      official repository. The CMake build system currently only exists in
-      /trunk and it will be included in the 1.15 release.
-
-      The process for building on Unix and Windows is the same.
-
-          $ python gen-make.py -t cmake
-          $ cmake -B out [build options]
-          $ cmake --build out
-
-      "out" in the commands above is the build directory used by CMake.
-
-      Build options can be added, for example:
-
-          $ cmake -B out -DCMAKE_INSTALL_PREFIX=/usr/local/subversion -DSVN_ENABLE_RA_SERF=ON
-
-      Build options can be listed using:
-
-          $ cmake -LH
-
-      Windows tricks:
-
-      - Modern versions of Microsoft Visual Studio provide support for
-        CMake projects out-of-box, including intellisense, integrated
-        options editor, test explorer, and more.
-
-        In order to use it for Subversion, open the source directory with
-        Visual Studio, and the configuration should start automatically.
-        For editing the cache (options), do right-click to the CMakeLists.txt
-        file and clicking `CMake Settings for Subversion` will open the
-        editor. After the required settings are configured, hit `F7` in
-        order to build. For more info, check the article bellow:
-
-            https://learn.microsoft.com/en-us/cpp/build/cmake-projects-in-visual-studio
-
-      - There is a useful tool for bootstrapping the dependencies,
-        vcpkg. It provides ports for the most of the Subversion's
-        dependencies, which then could be installed via a single
-        command.
-
-        To start using it, download the registry from GitHub, bootstrap
-        vcpkg, and install the dependencies:
-
-            $ git clone https://github.com/microsoft/vcpkg
-            $ cd vcpkg && .\bootstrap-vcpkg.bat -disableMetrics
-            $ .\vcpkg install apr apr-util expat zlib sqlite3 serf [any other dependency]
-
-        After this is done, vcpkg can be integrated into CMake by passing
-        the vcpkg toolchain to CMAKE_TOOLCHAIN_FILE option. In order to do
-        it with Visual Studio, open the CMake cache editor as explained in
-        the previous step, and put the following into `CMake toolchain
-        file` field, where VCPKG_ROOT is the path to vcpkg registry:
-
-            <VCPKG_ROOT>/scripts/buildsystems/vcpkg.cmake
-
 
 III.  BUILDING A SUBVERSION SERVER
       ============================
@@ -1301,7 +1240,7 @@ III.  BUILDING A SUBVERSION SERVER
       line.  Make sure this is the same db as the one Subversion uses.
       This note assumes you have installed Berkeley DB 4.2.52
       at its default locations.  For more info about the db requirement,
-      see section I.C.9.
+      see section I.C.7.
 
       You may also want to include other modules in your build. Add
       --enable-ssl to turn on SSL support, and --enable-deflate to turn on
@@ -1363,7 +1302,7 @@ III.  BUILDING A SUBVERSION SERVER
 
       The following section is an abbreviated version of the
       information in the Subversion Book
-      (https://svnbook.red-bean.com).  Please read chapter 6 for more
+      (http://svnbook.red-bean.com).  Please read chapter 6 for more
       details.
 
       The following assumes you have already created a repository.
@@ -1510,11 +1449,42 @@ III.  BUILDING A SUBVERSION SERVER
       can use existing system accounts).  It's also capable of using
       Cyrus SASL if libsasl2 is detected at ./configure time.  Please
       read chapter 6 in the Subversion Book
-      (https://svnbook.red-bean.com) for details on these features.
+      (http://svnbook.red-bean.com) for details on these features.
 
 
 
-IV.   PROGRAMMING LANGUAGE BINDINGS (PYTHON, PERL, RUBY, JAVA)
+IV.   PLATFORM-SPECIFIC ISSUES
+      ========================
+
+  A.  Windows XP
+      ----------
+
+      There is an error in the Windows XP TCP/IP stack which causes
+      corruption in certain cases.  This problem is exposed only
+      through ra_dav.
+
+      The root of the matter is caused by duplicating file handles
+      between parent and child processes.  The httpd Apache group
+      explains this a lot better:
+
+          https://www.apache.org/dist/httpd/binaries/win32/#xpbug
+
+      And there's an item about this in the Subversion FAQ:
+
+          https://subversion.apache.org/faq.html#windows-xp-server
+
+      The only known workaround for now is to update to Windows XP
+      SP1 (or higher).
+
+
+  B.  Mac OS X
+      --------
+
+      [TBD: Describe BDB 4.0.x problem]
+
+
+
+V.    PROGRAMMING LANGUAGE BINDINGS (PYTHON, PERL, RUBY, JAVA)
       ========================================================
 
       For Python, Perl and Ruby bindings, see the file

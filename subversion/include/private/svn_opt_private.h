@@ -90,13 +90,16 @@ svn_opt__arg_canonicalize_path(const char **path_out,
                                apr_pool_t *pool);
 
 /*
- * Processes arguments from @a utf8_input_targets into @a targets_p.
+ * Pull remaining target arguments from OS into *TARGETS_P,
+ * converting them to UTF-8, followed by targets from KNOWN_TARGETS
+ * (which might come from, for example, the "--targets" command line
+ * option), which are already in UTF-8.
  *
  * On each URL target, do some IRI-to-URI encoding and some
  * auto-escaping.  On each local path, canonicalize case and path
  * separators.
  *
- * Allocate @a targets_p and its elements in @a pool.
+ * Allocate *TARGETS_P and its elements in POOL.
  *
  * If a path has the same name as a Subversion working copy
  * administrative directory, return SVN_ERR_RESERVED_FILENAME_SPECIFIED;
@@ -107,8 +110,8 @@ svn_opt__arg_canonicalize_path(const char **path_out,
  * the operation before returning the error(s).
  */
 svn_error_t *
-svn_opt__process_target_array(apr_array_header_t **targets_p,
-                              apr_array_header_t *utf8_input_targets,
+svn_opt__args_to_target_array(apr_array_header_t **targets_p,
+                              apr_getopt_t *os,
                               const apr_array_header_t *known_targets,
                               apr_pool_t *pool);
 

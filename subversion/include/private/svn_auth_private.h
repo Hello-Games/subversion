@@ -39,7 +39,7 @@ extern "C" {
 
 /** SSL server authority verification credential type.
  *
- * The following auth parameters are available to the providers:
+ * The followin auth parameters are available to the providers:
  *
  * - @c SVN_AUTH_PARAM_SSL_SERVER_FAILURES (@c apr_uint32_t*)
  * - @c SVN_AUTH_PARAM_SSL_SERVER_CERT_INFO

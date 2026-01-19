@@ -24,18 +24,17 @@
 #
 
 '''usage: python run_tests.py
-            [--verbose] [--log-to-stdout] [--cleanup] [--tools-bin=<path>]
-            [--bin=<path>] [--parallel | --parallel=<n>] [--global-scheduler]
+            [--verbose] [--log-to-stdout] [--cleanup] [--bin=<path>]
+            [--parallel | --parallel=<n>] [--global-scheduler]
             [--url=<base-url>] [--http-library=<http-library>] [--enable-sasl]
             [--fs-type=<fs-type>] [--fsfs-packing] [--fsfs-sharding=<n>]
             [--list] [--milestone-filter=<regex>] [--mode-filter=<type>]
-            [--server-minor-version=<version>] [--wc-format-version=<version>]
-            [--http-proxy=<host>:<port>]
+            [--server-minor-version=<version>] [--http-proxy=<host>:<port>]
             [--httpd-version=<version>] [--httpd-whitelist=<version>]
             [--config-file=<file>] [--ssl-cert=<file>]
             [--exclusive-wc-locks] [--memcached-server=<url:port>]
             [--fsfs-compression=<type>] [--fsfs-dir-deltification=<true|false>]
-            [--allow-remote-http-connection] [--store-pristine=<val>]
+            [--allow-remote-http-connection]
             <abs_srcdir> <abs_builddir>
             <prog ...>
 
@@ -48,15 +47,29 @@ and filename of a test program, optionally followed by '#' and a comma-
 separated list of test numbers; the default is to run all the tests in it.
 '''
 
-import os, sys
+import os, sys, shutil
 import re
-import importlib, importlib.util
 import logging
-import queue
-import optparse, threading, traceback
-import subprocess
-from subprocess import Popen
+import optparse, subprocess, threading, traceback
 from datetime import datetime
+
+try:
+  # Python >=3.0
+  import queue
+except ImportError:
+  # Python <3.0
+  import Queue as queue
+
+if sys.version_info < (3, 0):
+  # Python >= 3.0 already has this build in
+  import exceptions
+
+if sys.version_info < (3, 5):
+  import imp
+else:
+  # The imp module is deprecated since Python 3.4; the replacement we use,
+  # module_from_spec(), is available since Python 3.5.
+  import importlib.util
 
 # Ensure the compiled C tests use a known locale (Python tests set the locale
 # explicitly).
@@ -66,29 +79,15 @@ os.environ['LC_ALL'] = 'C'
 svntest = None
 
 class TextColors:
-  '''Some ANSI terminal constants for output color ... and stuff'''
+  '''Some ANSI terminal constants for output color'''
   ENDC = '\033[0;m'
   FAILURE = '\033[1;31m'
-  WARNING = '\033[1;34m'
   SUCCESS = '\033[1;32m'
-
-  class Summary:
-    FAILURE = u'\U0001F631 '
-    WARNING = u'\U0001F440 '
-    SUCCESS = u'\U0001F37A '
-
-    @classmethod
-    def this_picture_was_worth_ten_thousand_words(cls):
-      cls.FAILURE = u''
-      cls.WARNING = u''
-      cls.SUCCESS = u''
 
   @classmethod
   def disable(cls):
-    cls.Summary.this_picture_was_worth_ten_thousand_words()
     cls.ENDC = ''
     cls.FAILURE = ''
-    cls.WARNING = ''
     cls.SUCCESS = ''
 
 
@@ -99,7 +98,7 @@ def _get_term_width():
 
   def ioctl_GWINSZ(fd):
     try:
-      import fcntl, termios, struct
+      import fcntl, termios, struct, os
       cr = struct.unpack('hh', fcntl.ioctl(fd, termios.TIOCGWINSZ,
                                            struct.pack('hh', 0, 0)))
     except:
@@ -143,7 +142,16 @@ def ensure_str(s):
     return s.decode("latin-1")
 
 def open_logfile(filename, mode, encoding='utf-8'):
-  return open(filename, mode, encoding=encoding, errors='surrogateescape')
+  if sys.version_info[0] != 2:
+    return open(filename, mode, encoding=encoding, errors='surrogateescape')
+  else:
+    class Wrapper(object):
+      def __init__(self, stream, encoding):
+        self._stream = stream
+        self.encoding = encoding
+      def __getattr__(self, name):
+        return getattr(self._stream, name)
+    return Wrapper(open(filename, mode), encoding)
 
 class TestHarness:
   '''Test harness for Subversion tests.
@@ -181,14 +189,12 @@ class TestHarness:
     self.faillogfile = faillogfile
     self.log = None
     self.opts = opts
-    self.c_test_cmdline: list[str] = []
-    self.py_test_cmdline: list[str] = []
 
     if not sys.stdout.isatty() or sys.platform == 'win32':
       TextColors.disable()
 
   def _init_c_tests(self):
-    cmdline = ['', '']   # Program name and source dir
+    cmdline = [None, None]   # Program name and source dir
 
     if self.opts.config_file is not None:
       cmdline.append('--config-file=' + self.opts.config_file)
@@ -209,9 +215,8 @@ class TestHarness:
         authzparent = os.path.join(self.builddir, subdir)
         if not os.path.exists(authzparent):
           os.makedirs(authzparent);
-        with open(os.path.join(authzparent, 'authz'), 'w') as fp:
-          fp.write('[/]\n'
-                   '* = rw\n')
+        open(os.path.join(authzparent, 'authz'), 'w').write('[/]\n'
+                                                            '* = rw\n')
 
     # ### Support --repos-template
     if self.opts.list_tests is not None:
@@ -228,18 +233,10 @@ class TestHarness:
     if self.opts.server_minor_version is not None:
       cmdline.append('--server-minor-version=%d' %
                      self.opts.server_minor_version)
-    if self.opts.wc_format_version is not None:
-      cmdline.append('--wc-format-version=%s' % self.opts.wc_format_version)
     if self.opts.mode_filter is not None:
       cmdline.append('--mode-filter=' + self.opts.mode_filter)
     if self.opts.parallel is not None:
       cmdline.append('--parallel')
-    if self.opts.store_pristine is not None:
-      cmdline.append('--store-pristine=%s' % self.opts.store_pristine)
-    if self.opts.valgrind is not None:
-      cmdline.append('--valgrind=%s' % self.opts.valgrind)
-    if self.opts.valgrind_opts is not None:
-      cmdline.append('--valgrind-opts=%s' % self.opts.valgrind_opts)
 
     self.c_test_cmdline = cmdline
 
@@ -255,12 +252,8 @@ class TestHarness:
         cmdline.append('--parallel')
       else:
         cmdline.append('--parallel-instances=%d' % self.opts.parallel)
-    if self.opts.tools_bin is not None:
-      cmdline.append('--tools-bin=%s' % self.opts.tools_bin)
     if self.opts.svn_bin is not None:
       cmdline.append('--bin=%s' % self.opts.svn_bin)
-    if self.opts.venv_base is not None:
-      cmdline.append('--python-venv=%s' % self.opts.venv_base)
     if self.opts.url is not None:
       cmdline.append('--url=%s' % self.opts.url)
     if self.opts.fs_type is not None:
@@ -275,8 +268,6 @@ class TestHarness:
       cmdline.append('--fsfs-version=%d' % self.opts.fsfs_version)
     if self.opts.server_minor_version is not None:
       cmdline.append('--server-minor-version=%d' % self.opts.server_minor_version)
-    if self.opts.wc_format_version is not None:
-      cmdline.append('--wc-format-version=%s' % self.opts.wc_format_version)
     if self.opts.dump_load_cross_check is not None:
       cmdline.append('--dump-load-cross-check')
     if self.opts.enable_sasl is not None:
@@ -311,12 +302,6 @@ class TestHarness:
       cmdline.append('--fsfs-dir-deltification=%s' % self.opts.fsfs_dir_deltification)
     if self.opts.allow_remote_http_connection is not None:
       cmdline.append('--allow-remote-http-connection')
-    if self.opts.store_pristine is not None:
-      cmdline.append('--store-pristine=%s' % self.opts.store_pristine)
-    if self.opts.valgrind is not None:
-      cmdline.append('--valgrind=%s' % self.opts.valgrind)
-    if self.opts.valgrind_opts is not None:
-      cmdline.append('--valgrind-opts=%s' % self.opts.valgrind_opts)
 
     self.py_test_cmdline = cmdline
 
@@ -327,18 +312,15 @@ class TestHarness:
       sys.path.insert(0, os.path.abspath(os.path.join(self.srcdir, basedir)))
 
       global svntest
-      svntest = importlib.import_module('svntest')
+      __import__('svntest')
+      __import__('svntest.main')
+      __import__('svntest.testcase')
+      svntest = sys.modules['svntest']
+      svntest.main = sys.modules['svntest.main']
+      svntest.testcase = sys.modules['svntest.testcase']
+
       svntest.main.parse_options(cmdline, optparse.SUPPRESS_USAGE)
       svntest.testcase.TextColors.disable()
-      dependency_path = svntest.main.ensure_dependencies()
-
-      # We have to update PYTHONPATH, otherwise the whole setting up of a
-      # virtualenv and installing dependencies will happen for every test case.
-      if dependency_path:
-        python_path = os.environ.get("PYTHONPATH")
-        python_path = (dependency_path if not python_path
-                       else "%s:%s" % (dependency_path, python_path))
-        os.environ["PYTHONPATH"] = python_path
     finally:
       os.chdir(old_cwd)
 
@@ -381,15 +363,15 @@ class TestHarness:
 
     def execute(self, harness):
       start_time = datetime.now()
-      with Popen(self._command_line(harness),
-                 stdout=subprocess.PIPE,
-                 stderr=subprocess.PIPE,
-                 cwd=self.progdir) as prog:
+      prog = subprocess.Popen(self._command_line(harness),
+                              stdout=subprocess.PIPE,
+                              stderr=subprocess.PIPE,
+                              cwd=self.progdir)
 
-        self.stdout_lines = prog.stdout.readlines() #type:ignore
-        self.stderr_lines = prog.stderr.readlines() #type:ignore
-        prog.wait()
-        self.result = prog.returncode
+      self.stdout_lines = prog.stdout.readlines()
+      self.stderr_lines = prog.stderr.readlines()
+      prog.wait()
+      self.result = prog.returncode
       self.taken = datetime.now() - start_time
 
   class CollectingThread(threading.Thread):
@@ -407,20 +389,22 @@ class TestHarness:
     def _count_c_tests(self, progabs, progdir, progbase):
       'Run a c test, escaping parameters as required.'
       cmdline = [ progabs, '--list' ]
-      with Popen(cmdline, stdout=subprocess.PIPE, cwd=progdir) as prog:
-        lines = prog.stdout.readlines() #type:ignore
-        self.result.append(TestHarness.Job(len(lines) - 2, False, progabs,
-                                           progdir, progbase))
+      prog = subprocess.Popen(cmdline, stdout=subprocess.PIPE, cwd=progdir)
+      lines = prog.stdout.readlines()
+      self.result.append(TestHarness.Job(len(lines) - 2, False, progabs,
+                                         progdir, progbase))
+      prog.wait()
 
     def _count_py_tests(self, progabs, progdir, progbase):
       'Run a c test, escaping parameters as required.'
       cmdline = [ sys.executable, progabs, '--list' ]
-      with Popen(cmdline, stdout=subprocess.PIPE, cwd=progdir) as prog:
-        lines = prog.stdout.readlines() #type:ignore
+      prog = subprocess.Popen(cmdline, stdout=subprocess.PIPE, cwd=progdir)
+      lines = prog.stdout.readlines()
 
-        for i in range(0, len(lines) - 2):
-          self.result.append(TestHarness.Job(i + 1, True, progabs,
-                                             progdir, progbase))
+      for i in range(0, len(lines) - 2):
+        self.result.append(TestHarness.Job(i + 1, True, progabs,
+                                           progdir, progbase))
+      prog.wait()
 
     def run(self):
       "Run a single test. Return the test's exit code."
@@ -469,8 +453,9 @@ class TestHarness:
     # test cases, one job for each c test case).  Do that concurrently to
     # mask latency.  This takes .5s instead of about 3s.
     threads = [ ]
-    for testcase in testlist:
-      threads.append(self.CollectingThread(self.srcdir, self.builddir, testcase))
+    for count, testcase in enumerate(testlist):
+      threads.append(self.CollectingThread(self.srcdir, self.builddir,
+                                           testcase))
 
     for t in threads:
       t.start()
@@ -496,8 +481,8 @@ class TestHarness:
     if has_py_tests:
       old_cwd = os.getcwd()
       os.chdir(jobs[-1].progdir)
-      svntest.main.options.keep_local_tmp = True #type:ignore
-      svntest.main.execute_tests([])             #type:ignore
+      svntest.main.options.keep_local_tmp = True
+      svntest.main.execute_tests([])
       os.chdir(old_cwd)
 
     # Some more prep work
@@ -519,7 +504,7 @@ class TestHarness:
     sys.stdout.flush()
 
     threads = [ TestHarness.TestSpawningThread(job_queue, self)
-                for _ in range(thread_count) ]
+                for i in range(thread_count) ]
     for t in threads:
       t.start()
     for t in threads:
@@ -621,7 +606,7 @@ class TestHarness:
     # Open the log again to for filtering.
     if self.logfile:
       self._open_log('r')
-      log_lines = self.log.readlines() #type:ignore
+      log_lines = self.log.readlines()
     else:
       log_lines = []
 
@@ -676,12 +661,6 @@ class TestHarness:
       print('At least one test FAILED, checking ' + self.logfile)
       for x in failed_list:
         sys.stdout.write(x)
-
-    xml_error_list = [x for x in log_lines if x[:8] == 'E: XML: ']
-    if xml_error_list:
-      print('There were some XML validation errors, checking' + self.logfile)
-      for x in sorted(set(xml_error_list)):
-        sys.stdout.write(x[3:])
 
     # Print summaries, from least interesting to most interesting.
     if self.opts.list_tests:
@@ -748,19 +727,16 @@ class TestHarness:
           last_start_lineno = lineno + 1
       faillog.close()
     elif self.faillogfile and os.path.exists(self.faillogfile):
-      print("%sWARNING%s: %sno failures, but '%s' exists from a previous run."
-            % (TextColors.WARNING, TextColors.ENDC,
-               TextColors.Summary.WARNING, self.faillogfile))
+      print("WARNING: no failures, but '%s' exists from a previous run."
+            % self.faillogfile)
 
     # Summary.
     if failed or xpassed or failed_list:
-      startc = TextColors.FAILURE
-      summary = "%sSome tests failed" % TextColors.Summary.FAILURE
+      summary = "Some tests failed"
     else:
-      startc = TextColors.SUCCESS
-      summary = "%sAll tests successful" % TextColors.Summary.SUCCESS
+      summary = "All tests successful"
     print("Python version: %d.%d.%d." % sys.version_info[:3])
-    print("%sSUMMARY:%s %s\n" % (startc, TextColors.ENDC, summary))
+    print("SUMMARY: %s\n" % summary)
 
     self._close_log()
     return failed
@@ -807,17 +783,6 @@ class TestHarness:
         log.write('FAIL:  %s: Unknown test failure (%s).\n'
                   % (progbase, test_failed))
 
-  def _maybe_prepend_valgrind(self, cmdline, progbase):
-    if self.opts.valgrind:
-      if (progbase in self.opts.valgrind.split(',')
-          or 'C' in self.opts.valgrind.split(',')):
-        valgrind = [os.path.join(self.builddir, 'libtool'), '--mode=execute',
-                    'valgrind', '--quiet', '--error-exitcode=1']
-        if self.opts.valgrind_opts:
-          valgrind += self.opts.valgrind_opts.split(' ')
-        cmdline = valgrind + cmdline
-    return cmdline
-
   def _run_c_test(self, progabs, progdir, progbase, test_nums, dot_count):
     'Run a c test, escaping parameters as required.'
     if self.opts.list_tests and self.opts.milestone_filter:
@@ -836,8 +801,8 @@ class TestHarness:
       total = len(test_nums)
     else:
       total_cmdline = [cmdline[0], '--list']
-      with Popen(total_cmdline, stdout=subprocess.PIPE) as prog:
-        lines = prog.stdout.readlines() #type:ignore
+      prog = subprocess.Popen(total_cmdline, stdout=subprocess.PIPE)
+      lines = prog.stdout.readlines()
       total = len(lines) - 2
 
     # This has to be class-scoped for use in the progress_func()
@@ -853,31 +818,39 @@ class TestHarness:
       self.dots_written = dots
 
     tests_completed = 0
-    cmdline = self._maybe_prepend_valgrind(cmdline, progbase)
-    with Popen(cmdline, stdout=subprocess.PIPE, stderr=self.log) as prog:
-      line = prog.stdout.readline() #type:ignore
-      while line:
-        line = ensure_str(line)
-        if self._process_test_output_line(line):
-          tests_completed += 1
-          progress_func(tests_completed)
+    prog = subprocess.Popen(cmdline, stdout=subprocess.PIPE,
+                            stderr=self.log)
+    line = prog.stdout.readline()
+    while line:
+      line = ensure_str(line)
+      if self._process_test_output_line(line):
+        tests_completed += 1
+        progress_func(tests_completed)
 
-        line = prog.stdout.readline() #type:ignore
+      line = prog.stdout.readline()
 
-      # If we didn't run any tests, still print out the dots
-      if not tests_completed:
-        os.write(sys.stdout.fileno(), b'.' * dot_count)
+    # If we didn't run any tests, still print out the dots
+    if not tests_completed:
+      os.write(sys.stdout.fileno(), b'.' * dot_count)
 
-      prog.wait()
-      return prog.returncode
+    prog.wait()
+    return prog.returncode
 
   def _run_py_test(self, progabs, progdir, progbase, test_nums, dot_count):
     'Run a python test, passing parameters as needed.'
     try:
-       spec = importlib.util.spec_from_file_location(progbase[:-3], progabs)
-       prog_mod = importlib.util.module_from_spec(spec) #type:ignore spec
-       sys.modules[progbase[:-3]] = prog_mod
-       spec.loader.exec_module(prog_mod) #type:ignore spec.loader
+      if sys.version_info < (3, 0):
+        prog_mod = imp.load_module(progbase[:-3], open(progabs, 'r'), progabs,
+                                   ('.py', 'U', imp.PY_SOURCE))
+      elif sys.version_info < (3, 5):
+        prog_mod = imp.load_module(progbase[:-3],
+                                   open(progabs, 'r', encoding="utf-8"),
+                                   progabs, ('.py', 'U', imp.PY_SOURCE))
+      else:
+         spec = importlib.util.spec_from_file_location(progbase[:-3], progabs)
+         prog_mod = importlib.util.module_from_spec(spec)
+         sys.modules[progbase[:-3]] = prog_mod
+         spec.loader.exec_module(prog_mod)
     except:
       print("\nError loading test (details in following traceback): " + progbase)
       traceback.print_exc()
@@ -919,12 +892,12 @@ class TestHarness:
       prog_f = progress_func
 
     try:
-      failed = svntest.main.execute_tests(prog_mod.test_list,  #type:ignore
+      failed = svntest.main.execute_tests(prog_mod.test_list,
                                           serial_only=serial_only,
                                           test_name=progbase,
                                           progress_func=prog_f,
                                           test_selection=test_nums)
-    except svntest.Failure: #type:ignore
+    except svntest.Failure:
       if self.log:
         os.write(old_stdout, b'.' * dot_count)
       failed = True
@@ -970,9 +943,9 @@ class TestHarness:
     progabs = os.path.abspath(os.path.join(self.srcdir, progdir, progbase))
     old_cwd = os.getcwd()
     line_length = _get_term_width()
-    dots_needed = (line_length
-                   - len(test_info)
-                   - len('success'))
+    dots_needed = line_length \
+                    - len(test_info) \
+                    - len('success')
     try:
       os.chdir(progdir)
       if progbase[-3:] == '.py':
@@ -1011,19 +984,17 @@ class TestHarness:
 
 
 def create_parser():
-  def set_log_level(option, opt, value, parser):
-    if value.isdigit():
-      value = int(value)
-    else:
-      value = getattr(logging, value)
-    parser.values.set_log_level = value
+  def set_log_level(option, opt, value, parser, level=None):
+    if level is None:
+      level = value
+    parser.values.set_log_level = getattr(logging, level, None) or int(level)
 
   parser = optparse.OptionParser(usage=__doc__);
 
   parser.add_option('-l', '--list', action='store_true', dest='list_tests',
                     help='Print test doc strings instead of running them')
-  parser.add_option('-v', '--verbose', action='store_const',
-                    dest='set_log_level', const=logging.DEBUG,
+  parser.add_option('-v', '--verbose', action='callback',
+                    callback=set_log_level, callback_args=(logging.DEBUG, ),
                     help='Print binary command-lines')
   parser.add_option('-c', '--cleanup', action='store_true',
                     help='Clean up after successful tests')
@@ -1039,23 +1010,12 @@ def create_parser():
                     help="Make svn use this DAV library (neon or serf)")
   parser.add_option('--bin', action='store', dest='svn_bin',
                     help='Use the svn binaries installed in this path')
-  parser.add_option('--tools-bin', action='store', dest='tools_bin',
-                    help='Use the svn tools installed in this path')
-  parser.add_option('--create-python-venv', action='store', dest='create_venv',
-                    help=('Create the Python virtual environment inside this'
-                          ' path and install the dependencies used by the'
-                          ' test suite, then exit. Do not run any tests.'))
-  parser.add_option('--python-venv', action='store', dest='venv_base',
-                    help=('Use the virtual environment inside this path to'
-                          ' find the dependencies used by the test suite.'))
   parser.add_option('--fsfs-sharding', action='store', type='int',
                     help='Default shard size (for fsfs)')
   parser.add_option('--fsfs-packing', action='store_true',
                     help="Run 'svnadmin pack' automatically")
   parser.add_option('--server-minor-version', type='int', action='store',
                     help="Set the minor version for the server")
-  parser.add_option('--wc-format-version', action='store',
-                    help="Set the WC format version")
   parser.add_option('--skip-c-tests', '--skip-C-tests', action='store_true',
                     help="Run only the Python tests")
   parser.add_option('--dump-load-cross-check', action='store_true',
@@ -1101,34 +1061,18 @@ def create_parser():
                     help='Set directory deltification option (for fsfs)')
   parser.add_option('--allow-remote-http-connection', action='store_true',
                     help='Run tests that connect to remote HTTP(S) servers')
-  parser.add_option('--store-pristine', action='store', type='str',
-                    help='Set the WC pristine mode')
-  parser.add_option('--valgrind', action='store',
-                    help='programs to run under valgrind')
-  parser.add_option('--valgrind-opts', action='store',
-                    help='options to pass valgrind')
 
   parser.set_defaults(set_log_level=None)
   return parser
 
 def main():
   (opts, args) = create_parser().parse_args(sys.argv[1:])
-  if opts.create_venv:
-    main_create_venv(opts, args)
-    sys.exit(0)
-
-  # Normal mode: don't create a virtual environment, run tests or whatever
-  # else was requested instead. Create the virtual environment on demand.
-  assert not opts.create_venv
 
   if len(args) < 3:
     print("{}: at least three positional arguments required; got {!r}".format(
       os.path.basename(sys.argv[0]), args
     ))
     sys.exit(2)
-  abs_srcdir = args[0]
-  abs_builddir = args[1]
-  programs = args[2:]
 
   if opts.log_to_stdout:
     logfile = None
@@ -1137,29 +1081,10 @@ def main():
     logfile = os.path.abspath('tests.log')
     faillogfile = os.path.abspath('fails.log')
 
-  th = TestHarness(abs_srcdir, abs_builddir, logfile, faillogfile, opts)
-  failed = th.run(programs)
+  th = TestHarness(args[0], args[1], logfile, faillogfile, opts)
+  failed = th.run(args[2:])
   if failed:
     sys.exit(1)
-
-def main_create_venv(opts, args):
-  # Environment creation mode: create the requested virtual environment,
-  # install required dependencies and exit.
-  assert opts.create_venv
-
-  if len(args) < 1:
-    print("{}: at least one positional argument required; got {!r}".format(
-      os.path.basename(sys.argv[0]), args
-    ))
-    sys.exit(2)
-  abs_srcdir = args[0]
-
-  sys.path.insert(0, os.path.join(abs_srcdir, "subversion", "tests", "cmdline"))
-  svntest = importlib.import_module("svntest")
-  svntest.main.venv_base = opts.create_venv
-  venv_dir = svntest.main.venv_path()
-  python_prog, _ = svntest.main.create_python_venv(venv_dir, quiet=True)
-  print(python_prog)
 
 
 # Run main if not imported as a module

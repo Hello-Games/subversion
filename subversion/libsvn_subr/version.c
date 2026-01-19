@@ -41,7 +41,7 @@ svn_boolean_t svn_ver_compatible(const svn_version_t *my_version,
                                  const svn_version_t *lib_version)
 {
   /* With normal development builds the matching rules are stricter
-     than for release builds, to avoid inadvertently using the wrong
+     that for release builds, to avoid inadvertantly using the wrong
      libraries.  For backward compatibility testing of development
      builds one can use --disable-full-version-match to cause a
      development build to use the release build rules.  This allows
@@ -116,13 +116,12 @@ svn_ver_check_list2(const svn_version_t *my_version,
 
 struct svn_version_extended_t
 {
-  const char *build_date;           /* Compilation date */
-  const char *build_time;           /* Compilation time */
-  const char *build_host;           /* Build canonical host name */
-  const char *copyright;            /* Copyright notice (localized) */
-  const char *runtime_host;         /* Runtime canonical host name */
-  const char *runtime_osname;       /* Running OS release name */
-  const char *character_encoding;   /* Encoding of the current locale */
+  const char *build_date;       /* Compilation date */
+  const char *build_time;       /* Compilation time */
+  const char *build_host;       /* Build canonical host name */
+  const char *copyright;        /* Copyright notice (localized) */
+  const char *runtime_host;     /* Runtime canonical host name */
+  const char *runtime_osname;   /* Running OS release name */
 
   /* Array of svn_version_ext_linked_lib_t describing dependent
      libraries. */
@@ -144,17 +143,16 @@ svn_version_extended(svn_boolean_t verbose,
   info->build_time = __TIME__;
   info->build_host = SVN_BUILD_HOST;
   info->copyright = apr_pstrdup
-    (pool, _("Copyright (C) 2026 The Apache Software Foundation.\n"
+    (pool, _("Copyright (C) 2024 The Apache Software Foundation.\n"
              "This software consists of contributions made by many people;\n"
              "see the NOTICE file for more information.\n"
              "Subversion is open source software, see "
-             "https://subversion.apache.org/\n"));
+             "http://subversion.apache.org/\n"));
 
   if (verbose)
     {
       info->runtime_host = svn_sysinfo__canonical_host(pool);
       info->runtime_osname = svn_sysinfo__release_name(pool);
-      info->character_encoding = svn_sysinfo__character_encoding(pool);
       info->linked_libs = svn_sysinfo__linked_libs(pool);
       info->loaded_libs = svn_sysinfo__loaded_libs(pool);
     }
@@ -197,12 +195,6 @@ const char *
 svn_version_ext_runtime_osname(const svn_version_extended_t *ext_info)
 {
   return ext_info->runtime_osname;
-}
-
-const char *
-svn_version_ext_character_encoding(const svn_version_extended_t *ext_info)
-{
-  return ext_info->character_encoding;
 }
 
 const apr_array_header_t *

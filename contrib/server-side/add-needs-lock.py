@@ -28,10 +28,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# $HeadURL$
-# $LastChangedDate$
-# $LastChangedBy$
-# $LastChangedRevision$
+# $HeadURL: https://svn.apache.org/repos/asf/subversion/branches/1.14.x/contrib/server-side/add-needs-lock.py $
+# $LastChangedDate: 2016-04-30 10:48:13 +0100 (Sat, 30 Apr 2016) $
+# $LastChangedBy: stefan2 $
+# $LastChangedRevision: 1741735 $
 
 import sys
 import os

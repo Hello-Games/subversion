@@ -3,7 +3,7 @@
 #  svndumpfilter_tests.py:  testing the 'svndumpfilter' tool.
 #
 #  Subversion is a tool for revision control.
-#  See https://subversion.apache.org for more information.
+#  See http://subversion.apache.org for more information.
 #
 # ====================================================================
 #    Licensed to the Apache Software Foundation (ASF) under one
@@ -608,7 +608,7 @@ def match_empty_prefix(sbox):
                                                              '--quiet',
                                                              *dumpargs)
     if filtered_err:
-      raise SVNExpectedStderr(filtered_err)
+      raise verify.UnexpectedStderr(filtered_err)
 
     # Load the filtered dump into a repo and check the result
     sbox.build(empty=True)

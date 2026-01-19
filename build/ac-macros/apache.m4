@@ -219,7 +219,6 @@ elif test x"$APXS" != x"no"; then
     echo "=================================================================="
 fi
 
-SVN_DOT_CLANGD([$APACHE_INCLUDES])
 AC_SUBST(APXS)
 AC_SUBST(APACHE_LDFLAGS)
 AC_SUBST(APACHE_INCLUDES)

@@ -111,8 +111,7 @@ svn_subst_translation_required(svn_subst_eol_style_t style,
                                svn_boolean_t special,
                                svn_boolean_t force_eol_check)
 {
-  return (special
-          || (keywords && apr_hash_count(keywords) > 0)
+  return (special || keywords
           || (style != svn_subst_eol_style_none && force_eol_check)
           || (style == svn_subst_eol_style_native &&
               strcmp(APR_EOL_STR, SVN_SUBST_NATIVE_EOL_STR) != 0)
@@ -1484,6 +1483,10 @@ stream_translated(svn_stream_t *stream,
                   svn_boolean_t expand,
                   apr_pool_t *result_pool)
 {
+  struct translated_stream_baton *baton
+    = apr_palloc(result_pool, sizeof(*baton));
+  svn_stream_t *s = svn_stream_create(baton, result_pool);
+
   /* Make sure EOL_STR and KEYWORDS are allocated in RESULT_POOL
      so they have the same lifetime as the stream. */
   if (eol_str)
@@ -1516,43 +1519,32 @@ stream_translated(svn_stream_t *stream,
         }
     }
 
-  if (eol_str || keywords)
+  /* Setup the baton fields */
+  baton->stream = stream;
+  baton->in_baton
+    = create_translation_baton(eol_str, translated_eol, repair, keywords,
+                               expand, result_pool);
+  baton->out_baton
+    = create_translation_baton(eol_str, translated_eol, repair, keywords,
+                               expand, result_pool);
+  baton->written = FALSE;
+  baton->readbuf = svn_stringbuf_create_empty(result_pool);
+  baton->readbuf_off = 0;
+  baton->iterpool = svn_pool_create(result_pool);
+  baton->buf = apr_palloc(result_pool, SVN__TRANSLATION_BUF_SIZE);
+
+  /* Setup the stream methods */
+  svn_stream_set_read2(s, NULL /* only full read support */,
+                       translated_stream_read);
+  svn_stream_set_write(s, translated_stream_write);
+  svn_stream_set_close(s, translated_stream_close);
+  if (svn_stream_supports_mark(stream))
     {
-      struct translated_stream_baton *baton
-        = apr_palloc(result_pool, sizeof(*baton));
-      svn_stream_t *s = svn_stream_create(baton, result_pool);
-
-      /* Setup the baton fields */
-      baton->stream = stream;
-      baton->in_baton
-        = create_translation_baton(eol_str, translated_eol, repair, keywords,
-                                   expand, result_pool);
-      baton->out_baton
-        = create_translation_baton(eol_str, translated_eol, repair, keywords,
-                                   expand, result_pool);
-      baton->written = FALSE;
-      baton->readbuf = svn_stringbuf_create_empty(result_pool);
-      baton->readbuf_off = 0;
-      baton->iterpool = svn_pool_create(result_pool);
-      baton->buf = apr_palloc(result_pool, SVN__TRANSLATION_BUF_SIZE);
-
-      /* Setup the stream methods */
-      svn_stream_set_read2(s, NULL /* only full read support */,
-                           translated_stream_read);
-      svn_stream_set_write(s, translated_stream_write);
-      svn_stream_set_close(s, translated_stream_close);
-      if (svn_stream_supports_mark(stream))
-        svn_stream_set_mark(s, translated_stream_mark);
-      if (svn_stream_supports_seek(stream))
-        svn_stream_set_seek(s, translated_stream_seek);
-
-      return s;
+      svn_stream_set_mark(s, translated_stream_mark);
+      svn_stream_set_seek(s, translated_stream_seek);
     }
-  else
-    {
-      /* No translation is necessary, return the original stream. */
-      return stream;
-    }
+
+  return s;
 }
 
 svn_stream_t *

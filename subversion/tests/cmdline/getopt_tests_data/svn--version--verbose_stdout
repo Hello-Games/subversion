@@ -4,12 +4,7 @@ svn, version 1.9.0-dev (under development)
 Copyright (C) 2012 The Apache Software Foundation.
 This software consists of contributions made by many people;
 see the NOTICE file for more information.
-Subversion is open source software, see https://subversion.apache.org/
-
-Supported working copy (WC) formats:
-
-* WC format 31, compatible with Subversion v1.8 and newer
-* WC format 32, compatible with Subversion v1.15 and newer
+Subversion is open source software, see http://subversion.apache.org/
 
 The following repository access (RA) modules are available:
 

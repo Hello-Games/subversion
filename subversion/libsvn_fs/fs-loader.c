@@ -52,18 +52,6 @@
 
 #include "fs-loader.h"
 
-/* Here are the declarations for the FS module init functions.  If we
-   are using DSO loading, they won't actually be linked into
-   libsvn_fs.  Note that these private functions have a common_pool
-   parameter that may be used for fs module scoped variables such as
-   the bdb cache.  This will be the same common_pool that is passed
-   to the create and open functions and these init functions (as well
-   as the open and create functions) are globally serialized so that
-   they have exclusive access to the common_pool. */
-#include "../libsvn_fs_base/fs_init.h"
-#include "../libsvn_fs_fs/fs_init.h"
-#include "../libsvn_fs_x/fs_init.h"
-
 /* This is defined by configure on platforms which use configure, but
    we need to define a fallback for Windows. */
 #ifndef DEFAULT_FS_TYPE
@@ -450,7 +438,7 @@ svn_fs_initialize(apr_pool_t *pool)
 static void
 default_warning_func(void *baton, svn_error_t *err)
 {
-  /* The one unforgivable sin is to fail silently.  Dumping to stderr
+  /* The one unforgiveable sin is to fail silently.  Dumping to stderr
      or /dev/tty is not acceptable default behavior for server
      processes, since those may both be equivalent to /dev/null.
 

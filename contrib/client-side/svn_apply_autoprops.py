@@ -1,13 +1,12 @@
 #!/usr/bin/env python
-# coding=utf-8
 
 # To do:
 # 1) Switch to using the Subversion Python bindings.
 #
-# $HeadURL$
-# $LastChangedRevision$
-# $LastChangedDate$
-# $LastChangedBy$
+# $HeadURL: https://svn.apache.org/repos/asf/subversion/branches/1.14.x/contrib/client-side/svn_apply_autoprops.py $
+# $LastChangedRevision: 1741723 $
+# $LastChangedDate: 2016-04-30 09:16:53 +0100 (Sat, 30 Apr 2016) $
+# $LastChangedBy: stefan2 $
 #
 # Copyright (C) 2005,2006 Blair Zajac <blair@orcaware.com>
 #
@@ -28,15 +27,11 @@
 import getopt
 import fnmatch
 import os
-import platform
 import re
-import subprocess
 import sys
 
 # The default path to the Subversion configuration file.
-SVN_CONFIG_FILENAME = os.path.expandvars(
-  r'%APPDATA%\Subversion\config' if platform.system() == 'Windows'
-  else '$HOME/.subversion/config')
+SVN_CONFIG_FILENAME = os.path.expandvars('$HOME/.subversion/config')
 
 # The name of Subversion's private directory in working copies.
 SVN_WC_ADM_DIR_NAME = '.svn'
@@ -68,10 +63,10 @@ def get_autoprop_lines(fd):
   lines = []
   reading_autoprops = 0
 
-  re_start_autoprops = re.compile(r'^\s*\[auto-props\]\s*')
-  re_end_autoprops = re.compile(r'^\s*\[\w+\]\s*')
+  re_start_autoprops = re.compile('^\s*\[auto-props\]\s*')
+  re_end_autoprops = re.compile('^\s*\[\w+\]\s*')
 
-  for line in fd:
+  for line in fd.xreadlines():
     if reading_autoprops:
       if re_end_autoprops.match(line):
         reading_autoprops = 0
@@ -116,7 +111,7 @@ def process_autoprop_lines(lines):
         prop_value = prop_value.strip()
       except ValueError:
         prop_name = prop
-        prop_value = 'ON'
+        prop_value = '*'
       if len(prop_name):
         props_list += [(prop_name, prop_value)]
 
@@ -124,14 +119,13 @@ def process_autoprop_lines(lines):
 
   return result
 
-def filter_walk(autoprop_lines, dirname, dirnames, filenames):
+def filter_walk(autoprop_lines, dirname, filenames):
   # Do not descend into a .svn directory.
   try:
-    dirnames.remove(SVN_WC_ADM_DIR_NAME)
+    filenames.remove(SVN_WC_ADM_DIR_NAME)
   except ValueError:
     pass
 
-  filenames += dirnames
   filenames.sort()
 
   # Find those filenames that match each fnmatch.
@@ -148,11 +142,9 @@ def filter_walk(autoprop_lines, dirname, dirnames, filenames):
     for prop in prop_list:
       command = ['svn', 'propset', prop[0], prop[1]]
       for f in matching_filenames:
-        if '@' in f:
-          f += '@'
         command += ["%s/%s" % (dirname, f)]
 
-      status = subprocess.call(command)
+      status = os.spawnvp(os.P_WAIT, 'svn', command)
       if status:
         print('Command %s failed with exit status %s' \
               % (command, status))
@@ -185,7 +177,7 @@ def main():
     return 1
 
   try:
-    fd = open(config_filename)
+    fd = file(config_filename)
   except IOError:
     print("Cannot open svn configuration file '%s' for reading: %s" \
           % (config_filename, sys.exc_value.strerror))
@@ -197,8 +189,7 @@ def main():
 
   autoprop_lines = process_autoprop_lines(autoprop_lines)
 
-  for root, dirs, files in os.walk(wc_path):
-    filter_walk(autoprop_lines, root, dirs, files)
+  os.path.walk(wc_path, filter_walk, autoprop_lines)
 
 if __name__ == '__main__':
   sys.exit(main())

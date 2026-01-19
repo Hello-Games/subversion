@@ -22,9 +22,7 @@
 set -e
 set -x
 
-if [ -d ../build/.svn ]; then
-  svn cleanup ../build
-fi
+svn cleanup ../build
 (test -h ../svn-trunk || ln -s build ../svn-trunk)
 for i in $(jot - 6 12); do
   (test -h ../svn-1.${i}.x || ln -s build ../svn-1.${i}.x)
@@ -34,21 +32,12 @@ svn cleanup ../../unix-build
 svn update ../../unix-build
 newlastchangedrev="$(svn info --show-item=last-changed-revision ../../unix-build/Makefile.svn)"
 (test -h ../GNUmakefile || ln -s ../unix-build/Makefile.svn ../GNUmakefile)
-if [ -d .svn ]; then
-  # always rebuild svn, but only rebuild deps if Makefile.svn has changed
-  url="$(svn info --show-item url)"
-  branch="${url##*/}"
-  if [ "$lastchangedrev" != "$newlastchangedrev" ]; then
-    (cd .. && gmake BRANCH="$branch" reset clean)
-    rm -f ../prefix/httpd/conf/httpd-svn-check-*.conf
-    rm -f ../prefix/httpd/conf/httpd-svn-proxy-*.conf
-    rm -f ../prefix/httpd/conf/httpd-svn-check-users
-    rm -f ../prefix/httpd/conf/httpd-svn-check-groups
-    rm -f ../prefix/httpd/conf/dontdothat
-  else
-    (cd .. && gmake BRANCH="$branch" svn-reset svn-bindings-reset svn-clean)
-  fi
+# always rebuild svn, but only rebuild dependencies if Makefile.svn has changed
+url="$(svn info --show-item url)"
+branch="${url##*/}"
+if [ "$lastchangedrev" != "$newlastchangedrev" ]; then
+  (cd .. && gmake BRANCH="$branch" reset clean)
 else
-  (cd .. && gmake reset clean)
+  (cd .. && gmake BRANCH="$branch" svn-reset svn-bindings-reset svn-clean)
 fi
 rm -f tests.log* fails.log*

@@ -817,7 +817,7 @@ create_conf(svn_repos_t *repos, apr_pool_t *pool)
 "### access through http: and/or file: URLs, then this file is"              NL
 "### irrelevant.)"                                                           NL
 ""                                                                           NL
-"### Visit https://subversion.apache.org/ for more information."             NL
+"### Visit http://subversion.apache.org/ for more information."              NL
 ""                                                                           NL
 "[general]"                                                                  NL
 "### The anon-access and auth-access options control access to the"          NL
@@ -1077,7 +1077,7 @@ create_repos_structure(svn_repos_t *repos,
       "requirements of your site."                                           NL
       ""                                                                     NL;
     const char * const readme_footer =
-      "Visit https://subversion.apache.org/ for more information."           NL;
+      "Visit http://subversion.apache.org/ for more information."            NL;
     apr_file_t *f;
     apr_size_t written;
 
@@ -1452,7 +1452,7 @@ svn_repos_upgrade2(const char *path,
   if (notify_func)
     {
       /* We notify *twice* here, because there are two different logistical
-         actions occurring. */
+         actions occuring. */
       svn_repos_notify_t *notify = svn_repos_notify_create(
                                     svn_repos_notify_mutex_acquired, subpool);
       notify_func(notify_baton, notify, subpool);
@@ -1702,7 +1702,7 @@ svn_repos_recover4(const char *path,
   if (notify_func)
     {
       /* We notify *twice* here, because there are two different logistical
-         actions occurring. */
+         actions occuring. */
       svn_repos_notify_t *notify = svn_repos_notify_create(
                                     svn_repos_notify_mutex_acquired, subpool);
       notify_func(notify_baton, notify, subpool);

@@ -1362,7 +1362,7 @@ create_wc_with_incoming_delete_file_merge_conflict(svn_test__sandbox_t *b,
     }
   else
     {
-      /* Commit modification and run a merge from the trunk to the branch. */
+      /* Commit modifcation and run a merge from the trunk to the branch. */
       SVN_ERR(sbox_wc_commit(b, ""));
       SVN_ERR(sbox_wc_update(b, "", SVN_INVALID_REVNUM));
       /* This should raise an "incoming delete vs local edit" tree conflict. */
@@ -5126,7 +5126,7 @@ test_merge_incoming_move_dir_across_branches(const svn_test_opts_t *opts,
   apr_array_header_t *possible_moved_to_abspaths;
 
   SVN_ERR(svn_test__sandbox_create(b,
-                                   "merge_incoming_move_dir across branches",
+                                   "merge_incoming_move_dir accross branches",
                                    opts, pool));
 
   SVN_ERR(create_wc_with_incoming_delete_dir_conflict_across_branches(b));
@@ -6113,13 +6113,10 @@ test_file_vs_dir_move_merge_assertion_failure(const svn_test_opts_t *opts,
   opt_rev.value.number = SVN_INVALID_REVNUM;
   peg_rev.kind = svn_opt_revision_unspecified;
   SVN_ERR(svn_test__create_client_ctx(&ctx, b, pool));
-  SVN_ERR(svn_client_checkout4(NULL, svn_path_url_add_component2(b->repos_url,
+  SVN_ERR(svn_client_checkout3(NULL, svn_path_url_add_component2(b->repos_url,
                                                                  "A1", pool),
                                wc_path, &peg_rev, &opt_rev, svn_depth_infinity,
-                               TRUE, FALSE,
-                               opts->wc_format_version,
-                               opts->store_pristine,
-                               ctx, pool));
+                               TRUE, FALSE, ctx, pool));
 
   SVN_ERR(svn_client_merge_peg5(svn_path_url_add_component2(b->repos_url, "A",
                                                             pool),
@@ -6973,7 +6970,7 @@ create_dir_move_vs_dir_move_merge_conflict(svn_client_conflict_t **conflict,
                           modified_file_content));
   SVN_ERR(sbox_wc_commit(b, ""));
 
-  /* Move the same directory to a different location on the branch. */
+  /* Move the same direcotry to a different location on the branch. */
   SVN_ERR(sbox_wc_move(b, "A2/B", "A2/B-also-moved"));
   SVN_ERR(sbox_wc_commit(b, ""));
 

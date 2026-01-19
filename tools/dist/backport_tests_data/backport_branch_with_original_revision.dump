@@ -570,13 +570,13 @@ Approved changes:
 
 
 Revision-number: 11
-Prop-content-length: 151
-Content-length: 151
+Prop-content-length: 150
+Content-length: 150
 
 K 10
 svn:author
-V 7
-jrandom
+V 6
+daniel
 K 7
 svn:log
 V 95
@@ -653,13 +653,13 @@ resolved
 
 
 Revision-number: 12
-Prop-content-length: 94
-Content-length: 94
+Prop-content-length: 93
+Content-length: 93
 
 K 10
 svn:author
-V 7
-jrandom
+V 6
+daniel
 K 7
 svn:log
 V 38

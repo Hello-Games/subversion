@@ -439,41 +439,6 @@ svn_ ## TYPE ## _swig_rb_closed(VALUE self)
     $result = PyList_New(0);
 }
 
-%typemap(out) svn_error_t * SVN_ERR_WITH_ATTRS (apr_status_t apr_err,
-                                                PyObject *exc_class,
-                                                PyObject *exc_ob) {
-    apr_err = 0;
-    exc_class = exc_ob = NULL;
-    if ($1 != NULL)
-      {
-        apr_err = $1->apr_err;
-        if (apr_err != SVN_ERR_SWIG_PY_EXCEPTION_SET)
-          {
-            svn_swig_py_build_svn_exception(&exc_class, &exc_ob, $1);
-            if (exc_ob == NULL)
-              {
-                /* We couldn't get an exception instance. */
-                if (exc_class != NULL)
-                  {
-                    /* Raise an exception without instance ... */
-                    PyErr_SetNone(exc_class);
-                    Py_DECREF(exc_class);
-                  }
-                SWIG_fail;
-              }
-            /* We have an exeception instance, but we don't raise it until
-               typemap(ret) block after typemap(argout) blocks. */
-          }
-        else
-          {
-            svn_error_clear($1);
-            SWIG_fail;
-          }
-      }
-    Py_XDECREF($result);
-    $result = PyList_New(0);
-}
-
 %typemap(ret) svn_error_t * {
     if ($result == NULL) {
       $result = Py_None;
@@ -495,18 +460,6 @@ svn_ ## TYPE ## _swig_rb_closed(VALUE self)
           break;
       }
     }
-}
-
-%typemap(ret) svn_error_t * SVN_ERR_WITH_ATTRS {
-    if (exc_ob != NULL)
-      {
-        PyErr_SetObject(exc_class, exc_ob);
-        Py_DECREF(exc_class);
-        Py_DECREF(exc_ob);
-        Py_XDECREF($result);
-        SWIG_fail;
-      }
-    $typemap(ret, svn_error_t *);
 }
 #endif
 
@@ -565,19 +518,11 @@ svn_ ## TYPE ## _swig_rb_closed(VALUE self)
 #ifdef SWIGPYTHON
 %typemap(in) (const char *PTR, apr_size_t LEN) {
     Py_ssize_t pyStrLen;
-    if (PyBytes_Check($input)) {
-        if (PyBytes_AsStringAndSize($input, (char **)&$1, &pyStrLen) == -1) {
-            SWIG_fail;
-        }
+    if (!PyBytes_Check($input)) {
+        PyErr_SetString(PyExc_TypeError, "expecting a bytes");
+        SWIG_fail;
     }
-    else if (PyUnicode_Check($input)) {
-        $1 = (char *)PyStr_AsUTF8AndSize($input, &pyStrLen);
-        if (PyErr_Occurred()) {
-            SWIG_fail;
-        }
-    }
-    else {
-        PyErr_SetString(PyExc_TypeError, "expecting a bytes or str");
+    if (PyBytes_AsStringAndSize($input, &$1, &pyStrLen) == -1) {
         SWIG_fail;
     }
     $2 = pyStrLen;

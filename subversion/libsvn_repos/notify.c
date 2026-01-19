@@ -1,4 +1,4 @@
-/* notify.c --- notification system
+/* notify.c --- notifcation system
  *
  * ====================================================================
  *    Licensed to the Apache Software Foundation (ASF) under one

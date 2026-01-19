@@ -96,6 +96,9 @@ dist_repos = os.getenv('SVN_RELEASE_DIST_REPOS',
 dist_dev_url = dist_repos + '/dev/subversion'
 dist_release_url = dist_repos + '/release/subversion'
 dist_archive_url = 'https://archive.apache.org/dist/subversion'
+buildbot_repos = os.getenv('SVN_RELEASE_BUILDBOT_REPOS',
+                           'https://svn.apache.org/repos/infra/infrastructure/buildbot/aegis/buildmaster')
+KEYS = 'https://people.apache.org/keys/group/subversion.asc'
 extns = ['zip', 'tar.gz', 'tar.bz2']
 
 
@@ -238,7 +241,7 @@ def get_branch_path(args):
         try:
             args.branch = 'branches/%d.%d.x' % (args.version.major, args.version.minor)
         except AttributeError:
-            raise RuntimeError("Please specify the branch using the release version label argument (for certain subcommands) or the '--branch' global option")
+            raise RuntimeError("Please specify the release version label or --branch-path")
 
     return args.branch.rstrip('/')  # canonicalize for later comparisons
 
@@ -510,6 +513,11 @@ def get_trunk_wc_path(base_dir, path=None):
     if path is None: return trunk_wc_path
     return os.path.join(trunk_wc_path, path)
 
+def get_buildbot_wc_path(base_dir, path=None):
+    buildbot_wc_path = os.path.join(get_tempdir(base_dir), 'svn-buildmaster')
+    if path is None: return buildbot_wc_path
+    return os.path.join(buildbot_wc_path, path)
+
 def get_trunk_url(revnum=None):
     return svn_repos + '/trunk' + '@' + (str(revnum) if revnum else '')
 
@@ -623,8 +631,7 @@ def create_status_file_on_branch(args):
     ver = args.version
     branch_wc = get_workdir(args.base_dir)
     branch_url = get_branch_url(ver)
-    run_svn(['checkout', branch_url, branch_wc, '--depth=immediates'],
-            dry_run=args.dry_run)
+    run_svn(['checkout', branch_url, branch_wc, '--depth=immediates'])
 
     status_local_path = os.path.join(branch_wc, 'STATUS')
     template_filename = 'STATUS.ezt'
@@ -635,14 +642,9 @@ def create_status_file_on_branch(args):
     template = ezt.Template(compress_whitespace=False)
     template.parse(get_tmplfile(template_filename).read())
 
-    if args.dry_run:
-      print('\nNew STATUS file:')
-      print(template.generate(sys.stdout, data))
-    else:
-      with open(status_local_path, 'x') as g:
+    with open(status_local_path, 'wx') as g:
         template.generate(g, data)
-    run_svn(['add', status_local_path],
-            dry_run=args.dry_run)
+    run_svn(['add', status_local_path])
     run_svn(['commit', status_local_path,
              '-m', '* branches/' + ver.branch + '.x/STATUS: New file.'],
             dry_run=args.dry_run)
@@ -656,11 +658,35 @@ def update_backport_bot(args):
 
   Ask someone with appropriate access to add the %s.x branch
   to the backport merge bot.  See
-  https://subversion.apache.org/docs/community-guide/releasing.html#backport-merge-bot
+  http://subversion.apache.org/docs/community-guide/releasing.html#backport-merge-bot
 
 ***
 
 """ % (ver.branch,))
+
+#----------------------------------------------------------------------
+def update_buildbot_config(args):
+    """Add the new branch to the list of branches monitored by the buildbot
+       master.
+    """
+    ver = args.version
+    buildbot_wc = get_buildbot_wc_path(args.base_dir)
+    run_svn(['checkout', buildbot_repos, buildbot_wc])
+
+    prev_ver = Version('1.%d.0' % (ver.minor - 1,))
+    next_ver = Version('1.%d.0' % (ver.minor + 1,))
+
+    relpath = 'master1/projects/subversion.conf'
+    edit_file(get_buildbot_wc_path(args.base_dir, relpath),
+              r'(MINOR_LINES=\[.*%s)(\])' % (prev_ver.minor,),
+              r'\1, %s\2' % (ver.minor,))
+
+    log_msg = '''\
+Subversion: start monitoring the %s branch.
+''' % (ver.branch)
+    commit_paths = [get_buildbot_wc_path(args.base_dir, relpath)]
+    run_svn(['commit'] + commit_paths + ['-m', log_msg],
+            dry_run=args.dry_run)
 
 #----------------------------------------------------------------------
 def create_release_branch(args):
@@ -668,6 +694,7 @@ def create_release_branch(args):
     update_minor_ver_in_trunk(args)
     create_status_file_on_branch(args)
     update_backport_bot(args)
+    update_buildbot_config(args)
 
 
 #----------------------------------------------------------------------
@@ -798,10 +825,6 @@ def roll_tarballs(args):
         exclude += ['STATUS']
         if args.version.minor < 7:
             exclude += ['packages', 'www']
-    if os.path.exists('.github'):
-        exclude += ['.github']
-    if os.path.exists('.asf.yaml'):
-        exclude += ['.asf.yaml']
     cwd = os.getcwd()
     os.chdir(get_workdir(args.base_dir))
     run_svn(['update', '--set-depth=exclude'] + exclude,
@@ -874,12 +897,6 @@ def roll_tarballs(args):
                 if dname.startswith('autom4te') and dname.endswith('.cache'):
                     shutil.rmtree(os.path.join(root, dname))
 
-    def clean_pycache():
-        for root, dirs, files in os.walk(exportdir):
-            for dname in dirs:
-                if dname == '__pycache__':
-                    shutil.rmtree(os.path.join(root, dname))
-
     logging.info('Building Windows tarballs')
     export(windows=True)
     os.chdir(exportdir)
@@ -888,10 +905,6 @@ def roll_tarballs(args):
     # line endings and won't run, so use the one in the working copy.
     run_script(args.verbose,
                '%s/tools/po/po-update.sh pot' % get_workdir(args.base_dir))
-    if not args.version < Version("1.15.0"):
-      run_script(args.verbose,
-                 'python gen-make.py -t cmake --release')
-    clean_pycache()  # as with clean_autom4te, is this pointless on Windows?
     os.chdir(cwd)
     clean_autom4te() # dist.sh does it but pointless on Windows?
     os.chdir(get_tempdir(args.base_dir))
@@ -907,10 +920,6 @@ def roll_tarballs(args):
                '''tools/po/po-update.sh pot
                   ./autogen.sh --release''',
                hide_stderr=True) # SWIG is noisy
-    if not args.version < Version("1.15.0"):
-      run_script(args.verbose,
-                 'python gen-make.py -t cmake --release')
-    clean_pycache()  # without this, tarballs contain empty __pycache__ dirs
     os.chdir(cwd)
     clean_autom4te() # dist.sh does it but probably pointless
 
@@ -923,7 +932,7 @@ def roll_tarballs(args):
     # Use the gzip -n flag - this prevents it from storing the
     # original name of the .tar file, and far more importantly, the
     # mtime of the .tar file, in the produced .tar.gz file. This is
-    # important, because it makes the gzip encoding reproducible by
+    # important, because it makes the gzip encoding reproducable by
     # anyone else who has an similar version of gzip, and also uses
     # "gzip -9n". This means that committers who want to GPG-sign both
     # the .tar.gz and the .tar.bz2 can download the .tar.bz2 (which is
@@ -971,12 +980,7 @@ def roll_tarballs(args):
         # from a committer's LDAP profile down the road)
         basename = 'subversion-%s.KEYS' % (str(args.version),)
         filepath = os.path.join(get_tempdir(args.base_dir), basename)
-        # The following code require release.py to be executed within a
-        # complete wc, not a shallow wc as indicated in HACKING as one option.
-        # We /could/ download COMMITTERS from /trunk if it doesn't exist...
-        subprocess.check_call([os.path.dirname(__file__) + '/make-keys.sh',
-                               '-c', os.path.dirname(__file__) + '/../../COMMITTERS',
-                               '-o', filepath])
+        download_file(KEYS, filepath, None)
         shutil.move(filepath, get_target(args))
 
     # And we're done!
@@ -1092,7 +1096,7 @@ def bump_versions_on_branch(args):
                                    universal_newlines=True).strip()
     HEAD = int(HEAD)
     def file_object_for(relpath):
-        fd = tempfile.NamedTemporaryFile(mode='w+', encoding='UTF-8')
+        fd = tempfile.NamedTemporaryFile()
         url = branch_url + '/' + relpath
         fd.url = url
         subprocess.check_call(['svn', 'cat', '%s@%d' % (url, HEAD)],
@@ -1145,7 +1149,7 @@ def clean_dist(args):
         return (version.major, version.minor)
 
     filenames = stdout.split('\n')
-    filenames = [x for x in filenames if x.startswith('subversion-')]
+    filenames = filter(lambda x: x.startswith('subversion-'), filenames)
     versions = set(map(Version, filenames))
     to_keep = set()
     # TODO: When we release 1.A.0 GA we'll have to manually remove 1.(A-2).* artifacts.
@@ -1319,13 +1323,9 @@ PUBLIC_KEY_ALGORITHMS = {
     # These values are taken from the RFC's registry at:
     # https://www.iana.org/assignments/pgp-parameters/pgp-parameters.xhtml#pgp-parameters-12
     #
-    # The values are callables that produce gpg2-like key length and type
-    # indications, e.g., "rsa4096" for a 4096-bit RSA key.
-    1:  lambda keylen, _: 'rsa' + str(keylen),  # RSA
-    3:  lambda keylen, _: 'rsa' + str(keylen),  # RSA Sign Only
-    17: lambda keylen, _: 'dsa' + str(keylen),  # DSA
-    # This index is not registered with IANA but is used by gpg2
-    22: lambda _, parts: parts[16],             # EdDSA
+    # The values are callables that produce gpg1-like key length and type
+    # indications, e.g., "4096R" for a 4096-bit RSA key.
+    1: (lambda keylen: str(keylen) + 'R'), # RSA
 }
 
 def _make_human_readable_fingerprint(fingerprint):
@@ -1419,7 +1419,7 @@ def get_siginfo(args, quiet=False):
                 keytype = int(parts[3])
                 formatter = PUBLIC_KEY_ALGORITHMS[keytype]
                 long_key_id = parts[4]
-                length_and_type = formatter(keylen, parts) + '/' + long_key_id
+                length_and_type = formatter(keylen) + '/' + long_key_id
                 del keylen, keytype, formatter, long_key_id
                 break
         else:
@@ -1461,13 +1461,12 @@ def check_sigs(args):
 
 def get_keys(args):
     'Import the LDAP-based KEYS file to gpg'
-    with tempfile.NamedTemporaryFile() as keysfile:
-      subprocess.check_call([
-          os.path.dirname(__file__) + '/make-keys.sh',
-          '-c', os.path.dirname(__file__) + '/../../COMMITTERS',
-          '-o', keysfile.name,
-      ])
-      subprocess.check_call(['gpg', '--import', keysfile.name])
+    # We use a tempfile because urlopen() objects don't have a .fileno()
+    with tempfile.SpooledTemporaryFile() as fd:
+        fd.write(urlopen(KEYS).read())
+        fd.flush()
+        fd.seek(0)
+        subprocess.check_call(['gpg', '--import'], stdin=fd)
 
 def add_to_changes_dict(changes_dict, audience, section, change, revision):
     # Normalize arguments
@@ -1650,7 +1649,7 @@ def write_changelog(args):
     # Output the sorted changelog entries
     # 1) Uncategorized changes
     print_section(changes_dict, None, None, None)
-    print()
+    print
     # 2) User-visible changes
     print(' User-visible changes:')
     print_section(changes_dict, 'U', None, None)
@@ -1662,7 +1661,7 @@ def write_changelog(args):
     print_section(changes_dict, 'U', 'clientserver', 'Client-side and server-side bugfixes')
     print_section(changes_dict, 'U', 'other', 'Other tool improvements and bugfixes')
     print_section(changes_dict, 'U', 'bindings', 'Bindings bugfixes', mandatory=True)
-    print()
+    print
     # 3) Developer-visible changes
     print(' Developer-visible changes:')
     print_section(changes_dict, 'D', None, None)
@@ -1720,7 +1719,8 @@ def main():
     subparser = subparsers.add_parser('create-release-branch',
                     help='''Create a minor release branch: branch from trunk,
                             update version numbers on trunk, create status
-                            file on branch, update backport bot.''')
+                            file on branch, update backport bot,
+                            update buildbot config.''')
     subparser.set_defaults(func=create_release_branch)
     subparser.add_argument('version', type=Version,
                     help='''A version number to indicate the branch, such as
@@ -1732,7 +1732,7 @@ def main():
     subparser.add_argument('--dry-run', action='store_true', default=False,
                    help='Avoid committing any changes to repositories.')
 
-    # Setup the parser for the write-release-notes subcommand
+    # Setup the parser for the create-release-branch subcommand
     subparser = subparsers.add_parser('write-release-notes',
                     help='''Write a template release-notes file.''')
     subparser.set_defaults(func=write_release_notes)
@@ -1807,7 +1807,7 @@ def main():
 
     # The move-to-dist subcommand
     subparser = subparsers.add_parser('move-to-dist',
-                    help='''Move candidates and signatures from the temporary
+                    help='''Move candiates and signatures from the temporary
                             release dev location to the permanent distribution
                             directory.''')
     subparser.set_defaults(func=move_to_dist)
@@ -1909,10 +1909,7 @@ def main():
     os.environ['TZ'] = 'UTC'
 
     # finally, run the subcommand, and give it the parsed arguments
-    try:
-      args.func(args)
-    except AttributeError:
-      parser.print_help()
+    args.func(args)
 
 
 if __name__ == '__main__':

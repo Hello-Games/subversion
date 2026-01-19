@@ -328,7 +328,7 @@ typedef struct svn_ra__vtable_t {
                                       svn_revnum_t revision,
                                       apr_pool_t *result_pool,
                                       apr_pool_t *scratch_pool);
-  /* If not NULL, receives a pointer to svn_ra_open, to allow opening
+  /* If not NULL, receives a pointer to svn_ra_open, to alllow opening
      a new ra session from inside the ra layer without a circular
      library dependency*/
   svn_error_t *(*set_svn_ra_open)(svn_ra_session_t *session,
@@ -344,13 +344,6 @@ typedef struct svn_ra__vtable_t {
                        svn_ra_dirent_receiver_t receiver,
                        void *receiver_baton,
                        apr_pool_t *scratch_pool);
-
-  /* See svn_ra_fetch_file_contents(). */
-  svn_error_t *(*fetch_file_contents)(svn_ra_session_t *session,
-                                      const char *path,
-                                      svn_revnum_t revision,
-                                      svn_stream_t *stream,
-                                      apr_pool_t *scratch_pool);
 
   /* Experimental support below here */
 
@@ -418,6 +411,17 @@ typedef svn_error_t *
 (*svn_ra__init_func_t)(const svn_version_t *loader_version,
                        const svn_ra__vtable_t **vtable,
                        apr_pool_t *pool);
+
+/* Declarations of the init functions for the available RA libraries. */
+svn_error_t *svn_ra_local__init(const svn_version_t *loader_version,
+                                const svn_ra__vtable_t **vtable,
+                                apr_pool_t *pool);
+svn_error_t *svn_ra_svn__init(const svn_version_t *loader_version,
+                              const svn_ra__vtable_t **vtable,
+                              apr_pool_t *pool);
+svn_error_t *svn_ra_serf__init(const svn_version_t *loader_version,
+                               const svn_ra__vtable_t **vtable,
+                               apr_pool_t *pool);
 
 
 

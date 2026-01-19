@@ -224,7 +224,7 @@ bye_gpg_agent(int sd)
 {
   /* don't bother to check the result of the write, it either worked or it
    * didn't, but either way we're closing. */
-  (void)write(sd, "BYE\n", 4);
+  write(sd, "BYE\n", 4);
   close(sd);
 }
 
@@ -680,9 +680,9 @@ simple_gpg_agent_next_creds(void **credentials,
   /* TODO: This attempt limit hard codes it at 3 attempts (or 2 retries)
    * which matches svn command line client's retry_limit as set in
    * svn_cmdline_create_auth_baton().  It would be nice to have that
-   * limit reflected here but that violates the boundary between the
+   * limit reflected here but that violates the boundry between the
    * prompt provider and the cache provider.  gpg-agent is acting as
-   * both here due to the peculiarities of their design so we'll have to
+   * both here due to the peculiarties of their design so we'll have to
    * live with this for now.  Note that when these failures get exceeded
    * it'll eventually fall back on the retry limits of whatever prompt
    * provider is in effect, so this effectively doubles the limit. */

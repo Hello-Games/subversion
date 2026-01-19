@@ -50,8 +50,7 @@
 %apply const char *MAY_BE_NULL {
     const char *native_eol,
     const char *comment,
-    const char *relative_to_dir,
-    const char *wri_abspath
+    const char *relative_to_dir
 };
 
 #ifdef SWIGRUBY

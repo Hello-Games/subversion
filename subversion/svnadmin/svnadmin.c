@@ -573,7 +573,7 @@ static const svn_opt_subcommand_desc3_t cmd_table[] =
     "overwrite the previous log message.\n"
    )},
    {'r', svnadmin__bypass_hooks},
-   { {'r', "specify revision number ARG"} }, },
+   { {'r', "specify revision number ARG"} }, }, 
 
   {"setrevprop", subcommand_setrevprop, {0}, {N_(
     "usage: 1. svnadmin setrevprop REPOS_PATH -r REVISION NAME FILE\n"
@@ -592,7 +592,7 @@ static const svn_opt_subcommand_desc3_t cmd_table[] =
    )},
    {'r', 't', svnadmin__use_pre_revprop_change_hook,
     svnadmin__use_post_revprop_change_hook},
-   { {'r', "specify revision number ARG"} }, },
+   { {'r', "specify revision number ARG"} }, }, 
 
   {"setuuid", subcommand_setuuid, {0}, {N_(
     "usage: svnadmin setuuid REPOS_PATH [NEW_UUID]\n"
@@ -2595,7 +2595,7 @@ subcommand_lslocks(apr_getopt_t *os, void *baton, apr_pool_t *pool)
   apr_hash_index_t *hi;
   apr_pool_t *iterpool = svn_pool_create(pool);
 
-  SVN_ERR(svn_opt_args_to_target_array3(&targets, os,
+  SVN_ERR(svn_opt__args_to_target_array(&targets, os,
                                         apr_array_make(pool, 0,
                                                        sizeof(const char *)),
                                         pool));
@@ -2936,7 +2936,7 @@ subcommand_rev_size(apr_getopt_t *os, void *baton, apr_pool_t *pool)
   else
     {
       const char *rev_size_str = apr_psprintf(pool,
-                                              "%12" APR_OFF_T_FMT, rev_size);
+                                              "%12" APR_INT64_T_FMT, rev_size);
       SVN_ERR(svn_cmdline_printf(pool, _("%s bytes in revision %ld\n"),
                                  rev_size_str, revision));
     }

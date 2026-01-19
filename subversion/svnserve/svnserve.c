@@ -66,8 +66,6 @@
 
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>   /* For getpid() */
-#elif WIN32
-#include <process.h>  /* For getpid() */
 #endif
 
 #include "server.h"
@@ -193,7 +191,7 @@ void winservice_notify_stop(void)
   if (winservice_svnserve_accept_socket != INVALID_SOCKET)
     closesocket(winservice_svnserve_accept_socket);
 }
-#endif /* WIN32 */
+#endif /* _WIN32 */
 
 
 /* Option codes and descriptions for svnserve.
@@ -494,15 +492,6 @@ static void sigchld_handler(int signo)
 }
 #endif
 
-#ifdef APR_HAVE_SIGACTION
-static svn_atomic_t sigtermint_seen = 0;
-static void
-sigtermint_handler(int signo)
-{
-    svn_atomic_set(&sigtermint_seen, 1);
-}
-#endif /* APR_HAVE_SIGACTION */
-
 /* Redirect stdout to stderr.  ARG is the pool.
  *
  * In tunnel or inetd mode, we don't want hook scripts corrupting the
@@ -558,10 +547,6 @@ accept_connection(connection_t **connection,
 
       status = apr_socket_accept(&(*connection)->usock, sock,
                                  connection_pool);
-#if APR_HAVE_SIGACTION
-      if (sigtermint_seen)
-          break;
-#endif
       if (handling_mode == connection_mode_fork)
         {
           apr_proc_t proc;
@@ -576,14 +561,9 @@ accept_connection(connection_t **connection,
     || APR_STATUS_IS_ECONNABORTED(status)
     || APR_STATUS_IS_ECONNRESET(status));
 
-  if (!status)
-    return SVN_NO_ERROR;
-#if APR_HAVE_SIGACTION
-  else if (sigtermint_seen)
-    return SVN_NO_ERROR;
-#endif
-  else
-    return svn_error_wrap_apr(status, _("Can't accept client connection"));
+  return status
+       ? svn_error_wrap_apr(status, _("Can't accept client connection"))
+       : SVN_NO_ERROR;
 }
 
 /* Add a reference to CONNECTION, i.e. keep it and it's pool valid unless
@@ -1357,20 +1337,11 @@ sub_main(int *exit_code,
     }
 #endif
 
-#if APR_HAVE_SIGACTION
-  apr_signal(SIGTERM, sigtermint_handler);
-  apr_signal(SIGINT, sigtermint_handler);
-#endif
-
   while (1)
     {
       connection_t *connection = NULL;
       SVN_ERR(accept_connection(&connection, sock, &params, handling_mode,
                                 pool));
-#if APR_HAVE_SIGACTION
-      if (sigtermint_seen)
-          break;
-#endif
       if (run_mode == run_mode_listen_once)
         {
           err = serve_socket(connection, connection->pool);
@@ -1385,7 +1356,7 @@ sub_main(int *exit_code,
           status = apr_proc_fork(&proc, connection->pool);
           if (status == APR_INCHILD)
             {
-              /* the child wouldn't listen to the main server's socket */
+              /* the child would't listen to the main server's socket */
               apr_socket_close(sock);
 
               /* serve_socket() logs any error it returns, so ignore it. */
@@ -1427,7 +1398,7 @@ sub_main(int *exit_code,
       close_connection(connection);
     }
 
-  return SVN_NO_ERROR;
+  /* NOTREACHED */
 }
 
 int

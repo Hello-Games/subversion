@@ -18,7 +18,7 @@
 # under the License.
 #
 #
-# $Id$
+# $Id: reject-detected-sha1-collisions.sh 1794454 2017-05-08 20:34:56Z astieger $
 #
 # Prevents detected SHA-1 collisions from being committed.
 # Uses sha1dcsum of sha1collisiondetection to detect

@@ -26,10 +26,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.file.FileStore;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.attribute.DosFileAttributeView;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -187,7 +183,7 @@ class SVNTests extends TestCase
                 rootUrl = rootUrl.replaceFirst("file:/", "file:///");
 
             // According to
-            // https://docs.oracle.com/javase/1.5.0/docs/api/java/io/File.html#toURL()
+            // http://java.sun.com/j2se/1.5.0/docs/api/java/io/File.html#toURL()
             // the URL from rootDir.toURI() may end with a trailing /
             // if rootDir exists and is a directory, so depending if
             // the test suite has been previously run and rootDir
@@ -249,7 +245,7 @@ class SVNTests extends TestCase
      * Create a directory for the sample (Greek) repository, config
      * files, repositories and working copies.
      */
-    private void createDirectories() throws IOException
+    private void createDirectories()
     {
         this.rootDir.mkdirs();
 
@@ -385,7 +381,7 @@ class SVNTests extends TestCase
      *
      * @param path The file or directory to be removed.
      */
-    static final void removeDirOrFile(File path) throws IOException
+    static final void removeDirOrFile(File path)
     {
         if (!path.exists())
         {
@@ -399,18 +395,6 @@ class SVNTests extends TestCase
             for (int i = 0; i < dirContents.length; i++)
             {
                 removeDirOrFile(dirContents[i]);
-            }
-        }
-
-        // Unset readonly flag of the file because deleting a file with
-        // readonly flag on Windows fails since Java 25.
-        Path nioPath = path.toPath();
-        FileStore store = Files.getFileStore(nioPath);
-        if (store.supportsFileAttributeView(DosFileAttributeView.class)) {
-            DosFileAttributeView view = Files.getFileAttributeView(
-                    nioPath, DosFileAttributeView.class);
-            if (view != null) {
-                view.setReadOnly(false);;
             }
         }
 

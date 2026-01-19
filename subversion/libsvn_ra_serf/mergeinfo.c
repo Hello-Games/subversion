@@ -22,6 +22,7 @@
  */
 
 #include <apr_tables.h>
+#include <apr_xml.h>
 
 #include "svn_hash.h"
 #include "svn_mergeinfo.h"

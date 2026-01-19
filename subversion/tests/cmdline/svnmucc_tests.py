@@ -3,7 +3,7 @@
 #  svnmucc_tests.py: tests of svnmucc
 #
 #  Subversion is a tool for revision control.
-#  See https://subversion.apache.org for more information.
+#  See http://subversion.apache.org for more information.
 #
 # ====================================================================
 #    Licensed to the Apache Software Foundation (ASF) under one
@@ -313,7 +313,7 @@ def basic_svnmucc(sbox):
 
   # Expected missing revision error
   xtest_svnmucc(sbox.repo_url,
-                ["svnmucc: E200022: Invalid revision number found parsing 'a'"
+                ["svnmucc: E200004: 'a' is not a revision"
                  ], #---------
                 '-m', 'log msg',
                 'cp', 'a', 'b')

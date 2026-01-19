@@ -4,7 +4,7 @@
 #  diff_tests.py:  some basic diff tests
 #
 #  Subversion is a tool for revision control.
-#  See https://subversion.apache.org for more information.
+#  See http://subversion.apache.org for more information.
 #
 # ====================================================================
 #    Licensed to the Apache Software Foundation (ASF) under one
@@ -2334,7 +2334,7 @@ def diff_nonrecursive_checkout_deleted_dir(sbox):
 # example, show an extraneous BASE->WORKING diff for the added directory
 # after the repos->WORKING output).
 def diff_repos_working_added_dir(sbox):
-  "repos->WORKING diff showing added modified dir"
+  "repos->WORKING diff showing added modifed dir"
 
   sbox.build()
 
@@ -3082,16 +3082,16 @@ def diff_external_diffcmd(sbox):
   if sys.platform == 'win32':
     diff_script_path = "%s.bat" % diff_script_path
 
-  expected_output = svntest.verify.RegexListOutput([
+  expected_output = svntest.verify.ExpectedOutput([
     "Index: iota\n",
     "===================================================================\n",
     "-u\n",
     "-L\n",
-    r"iota\t\(revision 1\)\n",
+    "iota\t(revision 1)\n",
     "-L\n",
-    r"iota\t\(working copy\)\n",
-    re.escape(os.path.abspath(svntest.main.get_admin_name())) + '.*' + "\n",
-    re.escape(os.path.abspath("iota")) + "\n"])
+    "iota\t(working copy)\n",
+    os.path.abspath(svntest.wc.text_base_path("iota")) + "\n",
+    os.path.abspath("iota") + "\n"])
 
   # Check that the output of diff corresponds with the expected arguments,
   # in the correct order.
@@ -3150,7 +3150,7 @@ def diff_url_against_local_mods(sbox):
   make_file_edit_del_add(A2)
 
   # Diff Path of A against working copy of A2.
-  # Output using arbitrary diff handling should be empty.
+  # Output using arbritrary diff handling should be empty.
   expected_output = []
   svntest.actions.run_and_verify_svn(expected_output, [],
                                      'diff', '--old', A, '--new', A2)
@@ -5336,33 +5336,33 @@ def diff_invalid_change_arg(sbox):
 
   svntest.actions.run_and_verify_svn(
     None,
-    (r'.*svn: E205000: Syntax error in change argument \'--1\''),
+    (r'.*svn: E205000: Non-numeric change argument \(--1\) given to -c'),
     'diff', sbox.wc_dir, '-c', '--1')
 
   svntest.actions.run_and_verify_svn(
     None,
-    (r'.*svn: E205000: Syntax error in change argument \'-r-1\''),
+    (r'.*svn: E205000: Non-numeric change argument \(-r-1\) given to -c'),
     'diff', sbox.wc_dir, '-c', '-r-1')
 
   svntest.actions.run_and_verify_svn(
     None,
-    (r'.*svn: E205000: Syntax error in change argument \'1--3\''),
+    (r'.*svn: E205000: Negative number in range \(1--3\) not supported with -c'),
     'diff', sbox.wc_dir, '-c', '1--3')
 
   # 'r' is not a number
   svntest.actions.run_and_verify_svn(
     None,
-    (r'.*svn: E205000: Syntax error in change argument \'r1--r3\''),
+    (r'.*svn: E205000: Non-numeric change argument \(r1--r3\) given to -c'),
     'diff', sbox.wc_dir, '-c', 'r1--r3')
 
   svntest.actions.run_and_verify_svn(
     None,
-    (r'.*svn: E205000: Syntax error in change argument \'r1-r-3\''),
+    (r'.*svn: E205000: Negative number in range \(r1-r-3\) not supported with -c'),
     'diff', sbox.wc_dir, '-c', 'r1-r-3')
 
   svntest.actions.run_and_verify_svn(
     None,
-    (r'.*svn: E205000: Syntax error in change argument \'1-0\''),
+    (r'.*svn: E205000: There is no change 0'),
     'diff', sbox.wc_dir, '-c', '1-0')
 
 ########################################################################

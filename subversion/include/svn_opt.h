@@ -482,24 +482,6 @@ typedef struct svn_opt_revision_range_t
   svn_opt_revision_t end;
 } svn_opt_revision_range_t;
 
-
-/**
- * Parse NULL-terminated C string @a str as a revision number and
- * store its value in @a rev.
- *
- * If @a str is not a valid revision number, then the error
- * #SVN_ERR_REVNUM_PARSE_FAILURE error is returned.  Negative numbers
- * parsed from @a str are considered invalid, and result in the same error.
- *
- * Unlike svn_revnum_parse(), this function support our cmdline revision
- * number format, whereas the revnum may be prefixed with an 'r' symbol.
- *
- * @since New in 1.15
- * @see svn_revnum_parse()
- */
-svn_error_t *
-svn_opt_parse_revnum(svn_revnum_t *rev, const char *str);
-
 /**
  * Set @a *start_revision and/or @a *end_revision according to @a arg,
  * where @a arg is "N" or "N:M", like so:
@@ -550,31 +532,6 @@ int
 svn_opt_parse_revision_to_range(apr_array_header_t *opt_ranges,
                                 const char *arg,
                                 apr_pool_t *pool);
-
-/**
- * Parse @a arg, where @a arg is "N", "-N", "N-M" into a
- * @c svn_opt_revision_range_t and push that onto @a opt_ranges.
- *
- *    - If @a arg is "N", set the @c start field of the
- *      @c svn_opt_revision_range_t to N-1 and @c end field to N.
- *
- *    - If @a arg is "-N", set the @c start field of the
- *      @c svn_opt_revision_range_t to N and @c end field to N-1.
- *
- *    - If @a arg is "N-M", set the @c start field of the
- *      @c svn_opt_revision_range_t to N-1 and @c end field to M.
- *
- * If @a arg is invalid, return -1; else return 0.
- *
- * Use @a result_pool to allocate @c svn_opt_revision_range_t pushed to the
- * array.
- *
- * @since New in 1.15.
- */
-int
-svn_opt_parse_change_to_range(apr_array_header_t *opt_ranges,
-                              const char *arg,
-                              apr_pool_t *result_pool);
 
 /**
  * Resolve peg revisions and operational revisions in the following way:
@@ -631,9 +588,10 @@ svn_opt_resolve_revisions(svn_opt_revision_t *peg_rev,
  * error, and if this is the only type of error encountered, complete
  * the operation before returning the error(s).
  *
- * @since New in 1.5.
+ * @deprecated Provided for backward compatibility with the 1.5 API.
  * @see svn_client_args_to_target_array()
  */
+SVN_DEPRECATED
 svn_error_t *
 svn_opt_args_to_target_array3(apr_array_header_t **targets_p,
                               apr_getopt_t *os,

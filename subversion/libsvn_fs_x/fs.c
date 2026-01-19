@@ -35,7 +35,6 @@
 #include "batch_fsync.h"
 #include "fs.h"
 #include "fs_x.h"
-#include "fs_init.h"
 #include "pack.h"
 #include "recovery.h"
 #include "hotcopy.h"

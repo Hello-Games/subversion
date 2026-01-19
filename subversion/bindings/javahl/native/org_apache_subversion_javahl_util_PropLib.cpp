@@ -210,7 +210,7 @@ private:
   const bool m_old_format;
   SVN::Pool& m_iterpool;
 };
-} // anonymous namespace
+} // anoymous namespace
 
 
 JNIEXPORT jbyteArray JNICALL

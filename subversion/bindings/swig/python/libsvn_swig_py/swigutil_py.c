@@ -417,12 +417,10 @@ void *svn_swig_py_must_get_ptr(void *input, swig_type_info *type, int argnum)
 
 /*** Custom SubversionException stuffs. ***/
 
-void svn_swig_py_build_svn_exception(PyObject **exc_class,
-                                     PyObject **exc_ob,
-                                     svn_error_t *error_chain)
+void svn_swig_py_svn_exception(svn_error_t *error_chain)
 {
   PyObject *args_list, *args, *apr_err_ob, *message_ob, *file_ob, *line_ob;
-  PyObject *svn_module;
+  PyObject *svn_module, *exc_class, *exc_ob;
   svn_error_t *err;
 
   if (error_chain == NULL)
@@ -430,7 +428,7 @@ void svn_swig_py_build_svn_exception(PyObject **exc_class,
 
   /* Start with no references. */
   args_list = args = apr_err_ob = message_ob = file_ob = line_ob = NULL;
-  svn_module = *exc_class = *exc_ob = NULL;
+  svn_module = exc_class = exc_ob = NULL;
 
   if ((args_list = PyList_New(0)) == NULL)
     goto finished;
@@ -489,12 +487,15 @@ void svn_swig_py_build_svn_exception(PyObject **exc_class,
   /* Create the exception object chain. */
   if ((svn_module = PyImport_ImportModule((char *)"svn.core")) == NULL)
     goto finished;
-  if ((*exc_class = PyObject_GetAttrString(svn_module,
-                                       (char *)"SubversionException")) != NULL)
-    {
-      *exc_ob = PyObject_CallMethod(*exc_class, (char *)"_new_from_err_list",
-                                    (char *)"O", args_list);
-    }
+  if ((exc_class = PyObject_GetAttrString(svn_module,
+                                       (char *)"SubversionException")) == NULL)
+    goto finished;
+  if ((exc_ob = PyObject_CallMethod(exc_class, (char *)"_new_from_err_list",
+                                    (char *)"O", args_list)) == NULL)
+    goto finished;
+
+  /* Raise the exception. */
+  PyErr_SetObject(exc_class, exc_ob);
 
  finished:
   /* Release any references. */
@@ -505,30 +506,8 @@ void svn_swig_py_build_svn_exception(PyObject **exc_class,
   Py_XDECREF(file_ob);
   Py_XDECREF(line_ob);
   Py_XDECREF(svn_module);
-}
-
-void svn_swig_py_svn_exception(svn_error_t *error_chain)
-{
-  PyObject *exc_class, *exc_ob;
-
-  /* First, we create the exception... */
-  svn_swig_py_build_svn_exception(&exc_class, &exc_ob, error_chain);
-
-  /* ...then, we raise it.  If got only an exception class but no
-     instance, we'll raise the class without an instance. */
-  if (exc_class != NULL)
-    {
-      if (exc_ob != NULL)
-        {
-          PyErr_SetObject(exc_class, exc_ob);
-          Py_DECREF(exc_ob);
-        }
-      else
-        {
-          PyErr_SetNone(exc_class);
-        }
-      Py_DECREF(exc_class);
-    }
+  Py_XDECREF(exc_class);
+  Py_XDECREF(exc_ob);
 }
 
 
@@ -3191,7 +3170,7 @@ void svn_swig_py_notify_func(void *baton,
   svn_swig_py_acquire_py_lock();
 
   /* As caller can't understand Python context and we can't notify if
-     Python callback function raise exception to caller, we must catch it
+     Python call back function raise exception to caller, we must catch it
      if it is occurred, and restore error indicator */
   PyErr_Fetch(&exc_type, &exc, &exc_traceback);
 
@@ -3241,7 +3220,7 @@ void svn_swig_py_notify_func2(void *baton,
   svn_swig_py_acquire_py_lock();
 
   /* As caller can't understand Python context and we can't notify if
-     Python callback function raise exception to caller, we must catch it
+     Python call back function raise exception to caller, we must catch it
      if it is occurred, and restore error indicator */
   PyErr_Fetch(&exc_type, &exc, &exc_traceback);
 
@@ -3284,7 +3263,7 @@ void svn_swig_py_status_func(void *baton,
   svn_swig_py_acquire_py_lock();
 
   /* As caller can't understand Python context and we can't notify if
-     Python callback function raise exception to caller, we must catch it
+     Python call back function raise exception to caller, we must catch it
      if it is occurred, and restore error indicator */
   PyErr_Fetch(&exc_type, &exc, &exc_traceback);
 
@@ -3433,7 +3412,7 @@ void svn_swig_py_status_func2(void *baton,
   svn_swig_py_acquire_py_lock();
 
   /* As caller can't understand Python context and we can't notify if
-     Python callback function raise exception to caller, we must catch it
+     Python call back function raise exception to caller, we must catch it
      if it is occurred, and restore error indicator */
   PyErr_Fetch(&exc_type, &exc, &exc_traceback);
 
@@ -4718,7 +4697,7 @@ ra_callbacks_progress_func(apr_off_t progress,
   svn_swig_py_acquire_py_lock();
 
   /* As caller can't understand Python context and we can't notify if
-     Python callback function raise exception to caller, we must catch it
+     Python call back function raise exception to caller, we must catch it
      if it is occurred, and restore error indicator */
   PyErr_Fetch(&exc_type, &exc, &exc_traceback);
 
@@ -5629,7 +5608,7 @@ svn_swig_py_config_enumerator2(const char *name,
   svn_swig_py_acquire_py_lock();
 
   /* As caller can't understand Python context and we can't notify if
-     Python callback function raise exception to caller, we must catch it
+     Python call back function raise exception to caller, we must catch it
      if it is occurred, and restore error indicator */
   PyErr_Fetch(&exc_type, &exc, &exc_traceback);
 
@@ -5687,7 +5666,7 @@ svn_swig_py_config_section_enumerator2(const char *name,
   svn_swig_py_acquire_py_lock();
 
   /* As caller can't understand Python context and we can't notify if
-     Python callback function raise exception to caller, we must catch it
+     Python call back function raise exception to caller, we must catch it
      if it is occurred, and restore error indicator */
   PyErr_Fetch(&exc_type, &exc, &exc_traceback);
 

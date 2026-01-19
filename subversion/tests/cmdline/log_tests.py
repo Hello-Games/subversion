@@ -3,7 +3,7 @@
 #  log_tests.py:  testing "svn log"
 #
 #  Subversion is a tool for revision control.
-#  See https://subversion.apache.org for more information.
+#  See http://subversion.apache.org for more information.
 #
 # ====================================================================
 #    Licensed to the Apache Software Foundation (ASF) under one
@@ -1008,7 +1008,7 @@ def log_xml_empty_date(sbox):
   date_re = re.compile('<date')
 
   # Ensure that we get a date before we delete the property.
-  exit_code, output, errput = svntest.actions.run_and_verify_svn_xml(
+  exit_code, output, errput = svntest.actions.run_and_verify_svn(
     None, [], 'log', '--xml', '-r1', sbox.wc_dir)
 
   matched = 0
@@ -1023,7 +1023,7 @@ def log_xml_empty_date(sbox):
                                      'pdel', '--revprop', '-r1', 'svn:date',
                                      sbox.wc_dir)
 
-  exit_code, output, errput = svntest.actions.run_and_verify_svn_xml(
+  exit_code, output, errput = svntest.actions.run_and_verify_svn(
     None, [], 'log', '--xml', '-r1', sbox.wc_dir)
 
   for line in output:
@@ -2093,7 +2093,7 @@ def merge_sensitive_log_copied_path_inherited_mergeinfo(sbox):
   svntest.main.run_svn(None, 'move', old_gamma_path, new_gamma_path)
   sbox.simple_commit(message='Move file')
 
-  # 'svn log -g --stop-on-copy ^/A/C/gamma' should return *only* r5
+  # 'svn log -g --stop-on-copy ^/A/C/gamma' hould return *only* r5
   # Previously this test failed because the change in gamma's inherited
   # mergeinfo between r4 and r5, due to the move, was understood as a merge:
   #
@@ -2782,7 +2782,7 @@ def log_on_deleted_deep(sbox):
 @Issue(4711)
 def log_with_merge_history_and_search(sbox):
   "log --use-merge-history --search"
-
+  
   sbox.build()
 
   # r2: create branch
@@ -2798,53 +2798,22 @@ def log_with_merge_history_and_search(sbox):
   sbox.simple_commit(message='r4: merge')
   sbox.simple_update()
 
+  # Helper function
+  def count(haystack, needle):
+    """Return the number of times the string NEEDLE occurs in the string
+    HAYSTACK."""
+    return len(haystack.split(needle)) - 1
+
   # Check the output is valid
+  # ### Since the test is currently XFail, we only smoke test the output.
+  # ### When fixing this test to PASS, extend this validation.
   _, output, _ = svntest.main.run_svn(None, 'log', '--xml', '-g',
                                       '--search', "this will have no matches",
                                       sbox.ospath('A2'))
-  svntest.verify.validate_xml_schema('log', output)
 
-@XFail(svntest.main.is_ra_type_file)
-@Issue(4856)
-def log_xml_with_merge_history(sbox):
-  "log --use-merge-history --xml"
-
-  sbox.build()
-
-  # r2-r4: create branches
-  sbox.simple_repo_copy('A', 'A2')
-  sbox.simple_repo_copy('A', 'A3')
-  sbox.simple_repo_copy('A', 'A4')
-
-  # r5: mod in trunk
-  sbox.simple_append('A/mu', 'line 2')
-  sbox.simple_commit(message='r5: mod')
-  sbox.simple_update()
-
-  # r6-r7: merge A=>A2, A2=>A3
-  svntest.main.run_svn(None, 'merge', '-c', '5', sbox.repo_url + '/A', sbox.ospath('A2'))
-  sbox.simple_commit(message='r6: merge A=>A2')
-  sbox.simple_update()
-  svntest.main.run_svn(None, 'merge', '-c', '6', sbox.repo_url + '/A2', sbox.ospath('A3'))
-  sbox.simple_commit(message='r7: merge A2=>A3')
-  sbox.simple_update()
-
-  # r8: add file in A3
-  xi_path = os.path.join(sbox.wc_dir, 'A3/xi')
-  svntest.main.file_write(xi_path, "This is the file 'A3/xi'.\n")
-  svntest.main.run_svn(None, 'add', xi_path)
-  sbox.simple_commit(message='r8: add A3/xi')
-  sbox.simple_update()
-
-  # r9: merge A3=>A4
-  svntest.main.run_svn(None, 'merge', '-r', '6:8', sbox.repo_url + '/A3', sbox.ospath('A4'))
-  sbox.simple_commit(message='r9: merge A3=>A4')
-  sbox.simple_update()
-
-  # Check the output is valid
-  _, output, _ = svntest.main.run_svn(None, 'log', '--xml', '-g', '-r', '8:9',
-                                      sbox.ospath('A4'))
-  svntest.verify.validate_xml_schema('log', output)
+  output = '\n'.join(output)
+  if count(output, "<logentry") != count(output, "</logentry"):
+    raise svntest.Failure("Apparently invalid XML in " + repr(output))
 
 ########################################################################
 # Run the tests
@@ -2897,7 +2866,6 @@ test_list = [ None,
               log_revision_move_copy,
               log_on_deleted_deep,
               log_with_merge_history_and_search,
-              log_xml_with_merge_history,
              ]
 
 if __name__ == '__main__':

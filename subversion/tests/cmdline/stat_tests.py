@@ -3,7 +3,7 @@
 #  stat_tests.py:  testing the svn stat command
 #
 #  Subversion is a tool for revision control.
-#  See https://subversion.apache.org for more information.
+#  See http://subversion.apache.org for more information.
 #
 # ====================================================================
 #    Licensed to the Apache Software Foundation (ASF) under one
@@ -1950,7 +1950,7 @@ def modified_modulo_translation(sbox):
 
   # CRLF it.
   with open(sbox.ospath('iota'), 'wb') as f:
-    f.write(b"This is the file 'iota'.\r\n")
+    f.write("This is the file 'iota'.\r\n")
 
   # Run status.  Expect some output.
   # TODO: decide how such files should show in the output; whether they

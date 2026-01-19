@@ -43,7 +43,7 @@ class NativeInputStream : public ::SVNBase
 {
 public:
   /**
-   * Constructs the native instance that will be wrapped in a Java object.
+   * Construcs the native instance that will be wrapped in a Java obejct.
    * If @a stream is @c NULL, you must call #set_stream before creating
    * the Java wrapper.
    */
@@ -141,7 +141,7 @@ class NativeOutputStream : public ::SVNBase
 {
 public:
   /**
-   * Constructs the native instance that will be wrapped in a Java object.
+   * Construcs the native instance that will be wrapped in a Java obejct.
    * If @a stream is @c NULL, you must call #set_stream before creating
    * the Java wrapper.
    */

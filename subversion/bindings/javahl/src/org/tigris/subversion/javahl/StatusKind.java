@@ -37,7 +37,7 @@ public interface StatusKind
     /** text or props have been modified */
     public static final int modified = 2;
 
-    /** is scheduled for addition */
+    /** is scheduled for additon */
     public static final int added = 3;
 
     /** scheduled for deletion */

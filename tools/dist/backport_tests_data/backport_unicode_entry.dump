@@ -454,13 +454,13 @@ Approved changes:
 
 
 Revision-number: 7
-Prop-content-length: 154
-Content-length: 154
+Prop-content-length: 153
+Content-length: 153
 
 K 10
 svn:author
-V 7
-jrandom
+V 6
+daniel
 K 7
 svn:log
 V 98

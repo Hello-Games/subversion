@@ -1975,7 +1975,7 @@ do_out_of_date_check(dav_resource_combined *comb, request_rec *r)
          We have to check if whatever the node is in HEAD is equivalent
          to what it was in the provided BASE revision.
 
-         If the node was copied, we would process it before its descendants
+         If the node was copied, we would process it before its decendants
          and we already performed quite a few checks when making it mutable
          via its descendant, so what we should really check here is if the
          properties changed since the BASE version.
@@ -3497,7 +3497,7 @@ emit_collection_head(const dav_resource *resource,
       SVN_ERR(dav_svn__brigade_puts(bb, output, xml_index_dtd));
       SVN_ERR(dav_svn__brigade_puts(bb, output,
                          "<svn version=\"" SVN_VERSION "\"\n"
-                         "     href=\"https://subversion.apache.org/\">\n"));
+                         "     href=\"http://subversion.apache.org/\">\n"));
       SVN_ERR(dav_svn__brigade_puts(bb, output, "  <index"));
 
       if (name)
@@ -3579,7 +3579,7 @@ emit_collection_entry(const dav_resource *resource,
 
   /* According to httpd-2.0.54/include/httpd.h, ap_os_escape_path()
      behaves differently on different platforms.  It claims to
-     "convert an OS path to a URL in an OS dependent way".
+     "convert an OS path to a URL in an OS dependant way".
      Nevertheless, there appears to be only one implementation
      of the function in httpd, and the code seems completely
      platform independent, so we'll assume it's appropriate for
@@ -3654,7 +3654,7 @@ emit_collection_tail(const dav_resource *resource,
           */
           SVN_ERR(dav_svn__brigade_puts(bb, output,
                    " </ul>\n <hr noshade><em>Powered by "
-                   "<a href=\"https://subversion.apache.org/\">"
+                   "<a href=\"http://subversion.apache.org/\">"
                    "Apache Subversion"
                    "</a> version " SVN_VERSION "."
                    "</em>\n</body></html>"));
@@ -3700,7 +3700,7 @@ deliver(const dav_resource *resource, ap_filter_t *unused)
       int i;
 
       /* <svn version="1.3.0 (dev-build)"
-              href="https://subversion.apache.org">
+              href="http://subversion.apache.org">
            <index name="[info->repos->repo_name]"
                   path="[info->repos_path]"
                   rev="[info->root.rev]">
@@ -4116,7 +4116,7 @@ create_collection(dav_resource *resource)
                               "autoversioning is not active.");
 
   /* ### note that the parent was checked out at some point, and this
-     ### is being performed relative to the working rsrc for that parent */
+     ### is being preformed relative to the working rsrc for that parent */
 
   /* Auto-versioning mkcol of regular resource: */
   if (resource->type == DAV_RESOURCE_TYPE_REGULAR)
@@ -4309,7 +4309,7 @@ remove_resource(dav_resource *resource, dav_response **response)
     }
 
   /* ### note that the parent was checked out at some point, and this
-     ### is being performed relative to the working rsrc for that parent */
+     ### is being preformed relative to the working rsrc for that parent */
 
   /* NOTE: strictly speaking, we cannot determine whether the parent was
      ever checked out, and that this working resource is relative to that

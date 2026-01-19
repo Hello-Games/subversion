@@ -993,7 +993,7 @@ get_combined_mergeinfo_changes(svn_mergeinfo_t *added_mergeinfo,
       /* Issue #4022 'svn log -g interprets change in inherited mergeinfo due
          to move as a merge': A copy where the source and destination inherit
          mergeinfo from the same parent means the inherited mergeinfo of the
-         source and destination will differ, but this difference is not
+         source and destination will differ, but this diffrence is not
          indicative of a merge unless the mergeinfo on the inherited parent
          has actually changed.
 
@@ -1047,7 +1047,7 @@ get_combined_mergeinfo_changes(svn_mergeinfo_t *added_mergeinfo,
             continue;
         }
 
-      /* Compare, contrast, and combine the results. */
+      /* Compare, constrast, and combine the results. */
       SVN_ERR(svn_mergeinfo_diff2(&deleted, &added, prev_mergeinfo,
                                   mergeinfo, FALSE, result_pool, iterpool));
       SVN_ERR(svn_mergeinfo_merge2(*deleted_mergeinfo, deleted,
@@ -1719,8 +1719,8 @@ do_logs(svn_fs_t *fs,
         int limit,
         svn_boolean_t strict_node_history,
         svn_boolean_t include_merged_revisions,
-        svn_boolean_t subtractive_merge,
         svn_boolean_t handling_merged_revisions,
+        svn_boolean_t subtractive_merge,
         svn_boolean_t ignore_missing_locations,
         const apr_array_header_t *revprops,
         svn_boolean_t descending_order,
@@ -1903,7 +1903,7 @@ store_search(svn_mergeinfo_t processed,
              apr_pool_t *scratch_pool)
 {
   /* We add 1 to end so that we can use the mergeinfo API to handle
-     single revisions where HIST_START is equal to HIST_END. */
+     singe revisions where HIST_START is equal to HIST_END. */
   svn_revnum_t start = hist_start <= hist_end ? hist_start : hist_end;
   svn_revnum_t end = hist_start <= hist_end ? hist_end + 1 : hist_start + 1;
   svn_mergeinfo_t mergeinfo = svn_hash__make(scratch_pool);

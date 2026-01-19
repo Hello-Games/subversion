@@ -363,7 +363,7 @@ struct svnlook_opt_state
   const char *txn;
   svn_boolean_t version;          /* --version */
   svn_boolean_t show_ids;         /* --show-ids */
-  int limit;                      /* --limit */
+  apr_size_t limit;               /* --limit */
   svn_boolean_t help;             /* --help */
   svn_boolean_t no_diff_deleted;  /* --no-diff-deleted */
   svn_boolean_t no_diff_added;    /* --no-diff-added */
@@ -391,7 +391,7 @@ typedef struct svnlook_ctxt_t
   svn_fs_t *fs;
   svn_boolean_t is_revision;
   svn_boolean_t show_ids;
-  int limit;
+  apr_size_t limit;
   svn_boolean_t no_diff_deleted;
   svn_boolean_t no_diff_added;
   svn_boolean_t diff_copy_from;
@@ -1323,7 +1323,7 @@ do_log(svnlook_ctxt_t *c, svn_boolean_t print_size, apr_pool_t *pool)
       return SVN_NO_ERROR;
     }
 
-  /* We imitate what svn_cmdline_printf does here, since we need the byte
+  /* We immitate what svn_cmdline_printf does here, since we need the byte
      size of what we are going to print. */
 
   SVN_ERR(svn_subst_translate_cstring2(prop_value->data, &prop_value_eol,
@@ -1579,7 +1579,7 @@ struct print_history_baton
 {
   svn_fs_t *fs;
   svn_boolean_t show_ids;    /* whether to show node IDs */
-  int limit;                 /* max number of history items */
+  apr_size_t limit;          /* max number of history items */
   apr_size_t count;          /* number of history items processed */
 };
 
@@ -2529,7 +2529,15 @@ sub_main(int *exit_code,
       switch (opt_id)
         {
         case 'r':
-          SVN_ERR(svn_opt_parse_revnum(&opt_state.rev, opt_arg));
+          {
+            char *digits_end = NULL;
+            opt_state.rev = strtol(opt_arg, &digits_end, 10);
+            if ((! SVN_IS_VALID_REVNUM(opt_state.rev))
+                || (! digits_end)
+                || *digits_end)
+              return svn_error_create(SVN_ERR_CL_ARG_PARSING_ERROR, NULL,
+                                      _("Invalid revision number supplied"));
+          }
           break;
 
         case 't':
@@ -2580,12 +2588,11 @@ sub_main(int *exit_code,
 
         case 'l':
           {
-            const char *utf8_opt_arg;
-            SVN_ERR(svn_utf_cstring_to_utf8(&utf8_opt_arg, opt_arg, pool));
-            err = svn_cstring_atoi(&opt_state.limit, utf8_opt_arg);
-            if (err)
+            char *end;
+            opt_state.limit = strtol(opt_arg, &end, 10);
+            if (end == opt_arg || *end != '\0')
               {
-                return svn_error_create(SVN_ERR_CL_ARG_PARSING_ERROR, err ,
+                return svn_error_create(SVN_ERR_CL_ARG_PARSING_ERROR, NULL,
                                         _("Non-numeric limit argument given"));
               }
             if (opt_state.limit <= 0)

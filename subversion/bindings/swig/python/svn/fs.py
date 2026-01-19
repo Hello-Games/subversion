@@ -2,7 +2,7 @@
 # fs.py: public Python interface for fs components
 #
 # Subversion is a tool for revision control.
-# See https://subversion.apache.org for more information.
+# See http://subversion.apache.org for more information.
 #
 ######################################################################
 #    Licensed to the Apache Software Foundation (ASF) under one
@@ -158,7 +158,7 @@ class FileDiff:
       try:
         p = _subprocess.Popen(cmd, stdout=_subprocess.PIPE, bufsize=-1,
                               close_fds=_sys.platform != "win32")
-      # When removing Python 2 support: Change to FileNotFoundError and
+      # When removing Python 2 support: Change to FileNotFoundError and 
       # remove check for ENOENT (FileNotFoundError "Corresponds to errno
       # ENOENT" according to documentation)
       except OSError as err:

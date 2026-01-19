@@ -106,7 +106,6 @@ AC_DEFUN(SVN_LIB_APR,
     AC_MSG_ERROR([apr-config --shlib-path-var failed])
   fi
 
-  SVN_DOT_CLANGD([$SVN_APR_INCLUDES])
   AC_SUBST(SVN_APR_CONFIG, ["$apr_config"])
   AC_SUBST(SVN_APR_INCLUDES)
   AC_SUBST(SVN_APR_LIBS)

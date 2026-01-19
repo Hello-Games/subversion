@@ -1,15 +1,8 @@
 ;;; psvn.el --- Subversion interface for emacs
-
-;; This file is known to be out of date but has been kept to not break scripts
-;; that might rely on it.
-;;
-;; The latest version is hosted here:
-;; http://www.xsteve.at/prg/emacs/
-
 ;; Copyright (C) 2002-2009 by Stefan Reichoer
 
 ;; Author: Stefan Reichoer <stefan@xsteve.at>
-;; $Id$
+;; $Id: psvn.el 1573006 2014-02-28 17:26:47Z breser $
 
 ;; psvn.el is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -35,7 +28,7 @@
 ;; if you upgrade to a higher version, you need to do a fresh checkout
 
 ;; psvn.el is an interface for the revision control tool subversion
-;; (see https://subversion.apache.org)
+;; (see http://subversion.apache.org)
 ;; psvn.el provides a similar interface for subversion as pcl-cvs for cvs.
 ;; At the moment the following commands are implemented:
 ;;
@@ -144,6 +137,8 @@
 
 ;; The latest version of psvn.el can be found at:
 ;;   http://www.xsteve.at/prg/emacs/psvn.el
+;; Or you can check it out from the subversion repository:
+;;   svn co http://svn.apache.org/repos/asf/subversion/trunk/contrib/client-side/emacs emacs-svn
 
 ;; TODO:
 ;; * shortcut for svn propset svn:keywords "Date" psvn.el
@@ -261,7 +256,7 @@
       (require 'diff-mode))
   (error nil))
 
-(defconst svn-psvn-revision "$Id$"
+(defconst svn-psvn-revision "$Id: psvn.el 1573006 2014-02-28 17:26:47Z breser $"
   "The revision number of psvn.")
 
 ;;; user setable variables

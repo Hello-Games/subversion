@@ -552,7 +552,7 @@ svn_depth_from_word(const char *word);
 /** A general subversion directory entry.
  *
  * @note To allow for extending the #svn_dirent_t structure in future
- * releases, always use svn_dirent_create() to allocate the structure.
+ * releases, always use svn_dirent_create() to allocate the stucture.
  *
  * @since New in 1.6.
  */
@@ -606,7 +606,7 @@ svn_dirent_create(apr_pool_t *result_pool);
  * keywords (e.g., $NetBSD$).  See
  *
  * @verbatim
-      https://svn.haxx.se/dev/archive-2001-12/0479.shtml
+      http://subversion.tigris.org/servlets/ReadMsg?list=dev&msgNo=8921
       =====
       From: "Jonathan M. Manning" <jmanning@alisa-jon.net>
       To: dev@subversion.tigris.org
@@ -617,7 +617,7 @@ svn_dirent_create(apr_pool_t *result_pool);
  * and Eric Gillespie's support of same:
  *
  * @verbatim
-      https://svn.haxx.se/dev/archive-2001-12/0315.shtml
+      http://subversion.tigris.org/servlets/ReadMsg?list=dev&msgNo=8757
       =====
       From: "Eric Gillespie, Jr." <epg@pretzelnet.org>
       To: dev@subversion.tigris.org
@@ -874,7 +874,7 @@ typedef struct svn_log_entry_t
    * value as changed_paths for compatibility with users assuming an older
    * version.
    *
-   * @note See https://svn.haxx.se/dev/archive-2010-08/0362.shtml for
+   * @note See http://svn.haxx.se/dev/archive-2010-08/0362.shtml for
    * further explanation.
    *
    * @since New in 1.6.

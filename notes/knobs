@@ -543,9 +543,8 @@ SVN_I_LIKE_LATENCY_SO_IGNORE_HTTPV2
 
 7.6 SVN_I_LOVE_PANGALACTIC_GARGLE_BLASTERS
 
-  Scope:     svn commit
-  Purpose:   Set to 1 and commit revision 42 to any repository.
-             Behold the output.
+  Scope:     
+  Purpose:   
 
 7.7 SVN_I_LIKE_LATENCY_SO_IGNORE_HTTPV2
 

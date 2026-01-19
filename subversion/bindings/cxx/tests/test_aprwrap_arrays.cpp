@@ -22,7 +22,6 @@
 #include <boost/test/unit_test.hpp>
 
 #include <algorithm>
-#include <random>
 #include <stdexcept>
 
 #include "../src/aprwrap.hpp"
@@ -44,12 +43,8 @@ apr_array_header_t* fill_array(apr::pool& pool)
   APR_ARRAY_PUSH(a, const char*) = "quintus";
   APR_ARRAY_PUSH(a, const char*) = "sextus";
   APR_ARRAY_PUSH(a, const char*) = "septimus";
-
-  std::random_device random_device;
-  std::mt19937 random_generator{random_device()};
-  std::shuffle(&APR_ARRAY_IDX(a, 0, const char*),
-               &APR_ARRAY_IDX(a, a->nelts, const char*),
-               random_generator);
+  std::random_shuffle(&APR_ARRAY_IDX(a, 0, const char*),
+                      &APR_ARRAY_IDX(a, a->nelts, const char*));
   return a;
 }
 } // anonymous namespace

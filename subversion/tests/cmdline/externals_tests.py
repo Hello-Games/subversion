@@ -3,7 +3,7 @@
 #  module_tests.py:  testing modules / external sources.
 #
 #  Subversion is a tool for revision control.
-#  See https://subversion.apache.org for more information.
+#  See http://subversion.apache.org for more information.
 #
 # ====================================================================
 #    Licensed to the Apache Software Foundation (ASF) under one
@@ -67,21 +67,14 @@ def externals_test_setup(sbox):
 
   The arrangement of the externals in the first repository is:
 
-    Properties on 'A/B':
-      svn:externals
-        ^/A/D/gamma gamma
+    /A/B/ ==>  ^/A/D/gamma                      gamma
+    /A/C/ ==>  exdir_G                          <scheme>:///<other_repos>/A/D/G
+               ../../../<other_repos_basename>/A/D/H@1 exdir_H
 
-    Properties on 'A/C':
-      svn:externals
-        exdir_G       <scheme>://<...>/<other_repos_basename>/A/D/G
-        ../../../<other_repos_basename>/A/D/H@1 exdir_H
-
-    Properties on 'A/D':
-      svn:externals
-        ^/../<other_repos_basename>/A exdir_A
-        //<scheme-relative URI to other_repos>/A/D/G/ exdir_A/G/
-        exdir_A/H -r 1 <scheme>://<...>/<other_repos_basename>/A/D/H
-        /<root-relative URI to other_repos>/A/B x/y/z/blah
+    /A/D/ ==>  ^/../<other_repos_basename>/A    exdir_A
+               //<other_repos>/A/D/G/           exdir_A/G/
+               exdir_A/H -r 1                   <scheme>:///<other_repos>/A/D/H
+               /<some_paths>/A/B                x/y/z/blah
 
   A dictionary is returned keyed by the directory created by the
   external whose value is the URL of the external.
@@ -3292,7 +3285,7 @@ def file_external_versioned_obstruction(sbox):
   sbox.build()
   wc_dir = sbox.wc_dir
 
-  expected_output = verify.RegexOutput(b'r2 committed .*')
+  expected_output = verify.RegexOutput('r2 committed .*')
   svntest.actions.run_and_verify_svnmucc(expected_output, [],
                            '-U', sbox.repo_url, '-m', 'r2: set external',
                            'propset', 'svn:externals', '^/A/mu mu-ext', 'A')
@@ -3317,7 +3310,7 @@ def file_external_versioned_obstruction(sbox):
   # external obstruction then when the external is deleted the
   # versioned node is missing from disk and wc.db.  Not really sure
   # what should happen, perhaps a not-present node?
-  expected_output = verify.RegexOutput(b'r3 committed .*')
+  expected_output = verify.RegexOutput('r3 committed .*')
   svntest.actions.run_and_verify_svnmucc(expected_output, [],
                            '-U', sbox.repo_url, '-m', 'r3: copy file',
                            'cp', 'head', 'A/mu', 'A/mu-ext',
@@ -3918,7 +3911,7 @@ def copy_pin_externals_whitespace_dir(sbox):
   branches_url = repo_url + '/branches'
   trunk_wc = sbox.ospath('trunk')
 
-  # Create a new revision to create interesting pinning revisions
+  # Create a new revision to creat interesting pinning revisions
   sbox.simple_propset('A', 'B', 'trunk')
   sbox.simple_commit('trunk')
 

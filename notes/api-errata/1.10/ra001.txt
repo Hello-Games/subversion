@@ -1,4 +1,4 @@
-API ERRATA -- $Id$
+API ERRATA -- $Id: ra001.txt 1819052 2017-12-22 16:16:31Z stefan2 $
 
 Root Cause of Errata: implementation/docstring mismatch
  Library(s) Affected: libsvn_ra_local, libsvn_client

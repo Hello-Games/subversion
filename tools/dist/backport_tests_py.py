@@ -3,7 +3,7 @@
 #  backport_tests_py.py:  Test backport.py
 #
 #  Subversion is a tool for revision control.
-#  See https://subversion.apache.org for more information.
+#  See http://subversion.apache.org for more information.
 #
 # ====================================================================
 #    Licensed to the Apache Software Foundation (ASF) under one
@@ -51,5 +51,4 @@ def run_conflicter(sbox, error_expected=False):
   with chdir(sbox.ospath('branch')):
     return svntest.main.run_command(args[0], error_expected, False, *(args[1:]))
 
-with open("backport_tests.py", "rb") as file:
-  exec(compile(file.read(), "backport_tests.py", "exec"))
+execfile("backport_tests.py")

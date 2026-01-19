@@ -50,15 +50,12 @@
 
 #include "svn_config.h"
 #include "ra_loader.h"
+#include "deprecated.h"
 
 #include "private/svn_auth_private.h"
 #include "private/svn_ra_private.h"
 #include "svn_private_config.h"
 
-/* Declarations of the init functions for the available RA libraries. */
-#include "../libsvn_ra_local/ra_init.h"
-#include "../libsvn_ra_svn/ra_init.h"
-#include "../libsvn_ra_serf/ra_init.h"
 
 
 
@@ -85,7 +82,7 @@ static const struct ra_lib_defn {
     svn_schemes,
 #ifdef SVN_LIBSVN_RA_LINKS_RA_SVN
     svn_ra_svn__init,
-    svn_ra_svn__compat_init
+    svn_ra_svn__deprecated_init
 #endif
   },
 
@@ -94,7 +91,7 @@ static const struct ra_lib_defn {
     local_schemes,
 #ifdef SVN_LIBSVN_RA_LINKS_RA_LOCAL
     svn_ra_local__init,
-    svn_ra_local__compat_init
+    svn_ra_local__deprecated_init
 #endif
   },
 
@@ -103,7 +100,7 @@ static const struct ra_lib_defn {
     dav_schemes,
 #ifdef SVN_LIBSVN_RA_LINKS_RA_SERF
     svn_ra_serf__init,
-    svn_ra_serf__compat_init
+    svn_ra_serf__deprecated_init
 #endif
   },
 
@@ -246,7 +243,7 @@ svn_error_t *svn_ra_initialize(apr_pool_t *pool)
 /* Please note: the implementation of svn_ra_create_callbacks is
  * duplicated in libsvn_ra/wrapper_template.h:compat_open() .  This
  * duplication is intentional, is there to avoid a circular
- * dependency, and is justified in great length in the code of
+ * dependancy, and is justified in great length in the code of
  * compat_open() in libsvn_ra/wrapper_template.h.  If you modify the
  * implementation of svn_ra_create_callbacks(), be sure to keep the
  * code in wrapper_template.h:compat_open() in sync with your
@@ -1372,18 +1369,6 @@ svn_ra_get_inherited_props(svn_ra_session_t *session,
 }
 
 svn_error_t *
-svn_ra_fetch_file_contents(svn_ra_session_t *session,
-                           const char *path,
-                           svn_revnum_t revision,
-                           svn_stream_t *stream,
-                           apr_pool_t *scratch_pool)
-{
-  SVN_ERR_ASSERT(svn_relpath_is_canonical(path));
-  return session->vtable->fetch_file_contents(session, path, revision, stream,
-                                              scratch_pool);
-}
-
-svn_error_t *
 svn_ra__get_commit_ev2(svn_editor_t **editor,
                        svn_ra_session_t *session,
                        apr_hash_t *revprop_table,
@@ -1570,3 +1555,47 @@ svn_ra_get_ra_library(svn_ra_plugin_t **library,
   return svn_error_createf(SVN_ERR_RA_ILLEGAL_URL, NULL,
                            _("Unrecognized URL scheme '%s'"), url);
 }
+
+/* For each libsvn_ra_foo library that is not linked in, provide a default
+   implementation for svn_ra_foo_init which returns a "not implemented"
+   error. */
+
+#ifndef SVN_LIBSVN_RA_LINKS_RA_NEON
+svn_error_t *
+svn_ra_dav_init(int abi_version,
+                apr_pool_t *pool,
+                apr_hash_t *hash)
+{
+  return svn_error_create(SVN_ERR_RA_NOT_IMPLEMENTED, NULL, NULL);
+}
+#endif /* ! SVN_LIBSVN_RA_LINKS_RA_NEON */
+
+#ifndef SVN_LIBSVN_RA_LINKS_RA_SVN
+svn_error_t *
+svn_ra_svn_init(int abi_version,
+                apr_pool_t *pool,
+                apr_hash_t *hash)
+{
+  return svn_error_create(SVN_ERR_RA_NOT_IMPLEMENTED, NULL, NULL);
+}
+#endif /* ! SVN_LIBSVN_RA_LINKS_RA_SVN */
+
+#ifndef SVN_LIBSVN_RA_LINKS_RA_LOCAL
+svn_error_t *
+svn_ra_local_init(int abi_version,
+                  apr_pool_t *pool,
+                  apr_hash_t *hash)
+{
+  return svn_error_create(SVN_ERR_RA_NOT_IMPLEMENTED, NULL, NULL);
+}
+#endif /* ! SVN_LIBSVN_RA_LINKS_RA_LOCAL */
+
+#ifndef SVN_LIBSVN_RA_LINKS_RA_SERF
+svn_error_t *
+svn_ra_serf_init(int abi_version,
+                 apr_pool_t *pool,
+                 apr_hash_t *hash)
+{
+  return svn_error_create(SVN_ERR_RA_NOT_IMPLEMENTED, NULL, NULL);
+}
+#endif /* ! SVN_LIBSVN_RA_LINKS_RA_SERF */

@@ -480,13 +480,13 @@ Approved changes:
 
 
 Revision-number: 8
-Prop-content-length: 207
-Content-length: 207
+Prop-content-length: 206
+Content-length: 206
 
 K 10
 svn:author
-V 7
-jrandom
+V 6
+daniel
 K 7
 svn:log
 V 150

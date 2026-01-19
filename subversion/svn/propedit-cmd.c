@@ -143,9 +143,7 @@ svn_cl__propedit(apr_getopt_t *os,
       SVN_ERR(svn_cmdline__edit_string_externally(
                &propval, NULL,
                opt_state->editor_cmd, temp_dir,
-               propval,
-               apr_psprintf(pool, "svn-revprop-r%ld",
-                            opt_state->start_revision.value.number),
+               propval, "svn-prop",
                ctx->config,
                svn_prop_needs_translation(pname),
                opt_state->encoding, pool));

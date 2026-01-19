@@ -33,7 +33,7 @@ import java.util.Set;
 import java.util.Map;
 
 /**
- * This interface is the common interface for all subversion
+ * This interface is the commom interface for all subversion
  * operations. It is implemented by SVNClient
  *
  * @since 1.7
@@ -65,7 +65,7 @@ public interface ISVNClient
      * @return The name of the working copy's administrative
      * directory, which is usually <code>.svn</code>.
      * @see <a
-     * href="https://svn.apache.org/repos/asf/subversion/trunk/notes/asp-dot-net-hack.txt">
+     * href="http://svn.apache.org/repos/asf/subversion/trunk/notes/asp-dot-net-hack.txt">
      * Instructions on changing this as a work-around for the behavior of
      * ASP.Net on Windows.</a>
      */
@@ -89,7 +89,7 @@ public interface ISVNClient
      *                    has effect when <code>onServer</code> is
      *                    <code>true</code>.
      * @param getAll      get status for uninteresting (unchanged) files.
-     * @param noIgnore    get status for normally ignored files and directories.
+     * @param noIgnore    get status for normaly ignored files and directories.
      * @param ignoreExternals if externals are ignored during status
      * @param depthAsSticky When set, interpret <code>depth</code> as
      *                      the ambient depth of the working copy.
@@ -633,7 +633,7 @@ public interface ISVNClient
      * @param noIgnore  whether to add files matched by ignore patterns
      * @param noAutoProps if true, ignore any auto-props configuration
      * @param ignoreUnknownNodeTypes whether to ignore files which
-     *                  the node type is not known, just as pipes
+     *                  the node type is not konwn, just as pipes
      * @param revpropTable A string-to-string mapping of revision properties
      *                     to values which will be set if this operation
      *                     results in a commit.
@@ -664,7 +664,7 @@ public interface ISVNClient
      * @param depth     depth to traverse into subdirectories
      * @param noIgnore  whether to add files matched by ignore patterns
      * @param ignoreUnknownNodeTypes whether to ignore files which
-     *                  the node type is not known, just as pipes
+     *                  the node type is not konwn, just as pipes
      * @param revpropTable A string-to-string mapping of revision properties
      *                     to values which will be set if this operation
      *                     results in a commit.

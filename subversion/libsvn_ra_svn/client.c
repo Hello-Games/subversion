@@ -56,7 +56,6 @@
 
 #include "../libsvn_ra/ra_loader.h"
 
-#include "ra_init.h"
 #include "ra_svn.h"
 
 #ifdef SVN_HAVE_SASL
@@ -562,8 +561,8 @@ static svn_error_t *make_tunnel(const char **args, svn_ra_svn_conn_t **conn,
   return SVN_NO_ERROR;
 }
 
-/* Parse URL into URI, validating it and setting the default port if none
-   was given.  Allocate the URI fields out of POOL. */
+/* Parse URL inot URI, validating it and setting the default port if none
+   was given.  Allocate the URI fileds out of POOL. */
 static svn_error_t *parse_url(const char *url, apr_uri_t *uri,
                               apr_pool_t *pool)
 {
@@ -1437,11 +1436,11 @@ parse_iproplist(apr_array_header_t **inherited_props,
   return SVN_NO_ERROR;
 }
 
-static svn_error_t *get_file(svn_ra_session_t *session, const char *path,
-                             svn_revnum_t rev, svn_stream_t *stream,
-                             svn_revnum_t *fetched_rev,
-                             apr_hash_t **props,
-                             apr_pool_t *pool)
+static svn_error_t *ra_svn_get_file(svn_ra_session_t *session, const char *path,
+                                    svn_revnum_t rev, svn_stream_t *stream,
+                                    svn_revnum_t *fetched_rev,
+                                    apr_hash_t **props,
+                                    apr_pool_t *pool)
 {
   svn_ra_svn__session_baton_t *sess_baton = session->priv;
   svn_ra_svn_conn_t *conn = sess_baton->conn;
@@ -1497,8 +1496,6 @@ static svn_error_t *get_file(svn_ra_session_t *session, const char *path,
                                &item->u.string.len));
     }
   svn_pool_destroy(iterpool);
-
-  SVN_ERR(svn_stream_close(stream));
 
   SVN_ERR(svn_ra_svn__read_cmd_response(conn, pool, ""));
 
@@ -1619,7 +1616,7 @@ static svn_error_t *ra_svn_get_dir(svn_ra_session_t *session,
 
          Note: they should NOT be "fixed" to send NULL, as that would break
          any older clients which received that NULL. But we may as well
-         be defensive against a malicious server.  */
+         be defensive against a malicous server.  */
       if (cdate == NULL)
         dirent->time = 0;
       else
@@ -3261,34 +3258,6 @@ ra_svn_list(svn_ra_session_t *session,
   return SVN_NO_ERROR;
 }
 
-static svn_error_t *ra_svn_get_file(svn_ra_session_t *session, const char *path,
-                                    svn_revnum_t rev, svn_stream_t *stream,
-                                    svn_revnum_t *fetched_rev,
-                                    apr_hash_t **props,
-                                    apr_pool_t *pool)
-{
-  /* We are not supposed to close the passed-in stream, so disown it. */
-  if (stream)
-    stream = svn_stream_disown(stream, pool);
-
-  SVN_ERR(get_file(session, path, rev, stream, fetched_rev,
-                   props, pool));
-
-  return SVN_NO_ERROR;
-}
-
-static svn_error_t *ra_svn_fetch_file_contents(svn_ra_session_t *session,
-                                               const char *path,
-                                               svn_revnum_t rev,
-                                               svn_stream_t *stream,
-                                               apr_pool_t *scratch_pool)
-{
-  SVN_ERR(get_file(session, path, rev, stream, NULL,
-                   NULL, scratch_pool));
-
-  return SVN_NO_ERROR;
-}
-
 static const svn_ra__vtable_t ra_svn_vtable = {
   svn_ra_svn_version,
   ra_svn_get_description,
@@ -3329,7 +3298,6 @@ static const svn_ra__vtable_t ra_svn_vtable = {
   ra_svn_get_inherited_props,
   NULL /* ra_set_svn_ra_open */,
   ra_svn_list,
-  ra_svn_fetch_file_contents,
   ra_svn_register_editor_shim_callbacks,
   NULL /* commit_ev2 */,
   NULL /* replay_range_ev2 */
@@ -3373,5 +3341,5 @@ svn_ra_svn__init(const svn_version_t *loader_version,
 #define DESCRIPTION RA_SVN_DESCRIPTION
 #define VTBL ra_svn_vtable
 #define INITFUNC svn_ra_svn__init
-#define COMPAT_INITFUNC svn_ra_svn__compat_init
+#define COMPAT_INITFUNC svn_ra_svn_init
 #include "../libsvn_ra/wrapper_template.h"

@@ -550,7 +550,7 @@ parse_option(int *pch, parse_context_t *ctx, apr_pool_t *scratch_pool)
 }
 
 
-/* Read chars until encounter ']', then skip everything to the end of
+/* Read chars until enounter ']', then skip everything to the end of
  * the line.  Set *PCH to the character that ended the line (either
  * newline or EOF), and set CTX->section to the string of characters
  * seen before ']'.
@@ -1237,7 +1237,7 @@ svn_config_ensure(const char *config_dir, apr_pool_t *pool)
         "### It does not remove or invalidate existing stored credentials."  NL
         "### To do that, see the 'svn auth --remove' command, or remove the" NL
         "### cache files by hand as described in the Subversion book at"     NL
-        "### https://svnbook.red-bean.com/nightly/en/svn.serverconfig.netmodel.html#svn.tour.initial.authn-cache-purge"
+        "### http://svnbook.red-bean.com/nightly/en/svn.serverconfig.netmodel.html#svn.tour.initial.authn-cache-purge"
                                                                              NL
         "###"                                                                NL
         "### HTTP timeouts, if given, are specified in seconds.  A timeout"  NL
@@ -1554,10 +1554,6 @@ svn_config_ensure(const char *config_dir, apr_pool_t *pool)
         "### returning an error.  The default is 10000, i.e. 10 seconds."    NL
         "### Longer values may be useful when exclusive locking is enabled." NL
         "# busy-timeout = 10000"                                             NL
-        "### Set the default working copy format version.  Newly created"    NL
-        "### and upgraded working copies will by default be compatible with" NL
-        "### the specified Subversion version."                              NL
-        "# compatible-version = 1.8"                                         NL
         ;
 
       err = svn_io_file_open(&f, path,

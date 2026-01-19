@@ -21,10 +21,10 @@
 #
 #
 
-# $HeadURL$
-# $LastChangedDate$
-# $LastChangedBy$
-# $LastChangedRevision$
+# $HeadURL: https://svn.apache.org/repos/asf/subversion/branches/1.14.x/tools/hook-scripts/svnperms.py $
+# $LastChangedDate: 2025-07-14 05:00:05 +0100 (Mon, 14 Jul 2025) $
+# $LastChangedBy: svn-role $
+# $LastChangedRevision: 1927212 $
 
 import sys, os
 import getopt

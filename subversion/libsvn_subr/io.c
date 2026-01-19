@@ -144,14 +144,6 @@
 #ifdef WIN32
 
 #if _WIN32_WINNT < 0x600 /* Does the SDK assume Windows Vista+? */
-typedef struct _FILE_BASIC_INFO {
-  LARGE_INTEGER CreationTime;
-  LARGE_INTEGER LastAccessTime;
-  LARGE_INTEGER LastWriteTime;
-  LARGE_INTEGER ChangeTime;
-  DWORD FileAttributes;
-} FILE_BASIC_INFO, *PFILE_BASIC_INFO;
-
 typedef struct _FILE_RENAME_INFO {
   BOOL   ReplaceIfExists;
   HANDLE RootDirectory;
@@ -168,7 +160,6 @@ typedef struct _FILE_ATTRIBUTE_TAG_INFO {
   DWORD ReparseTag;
 } FILE_ATTRIBUTE_TAG_INFO, *PFILE_ATTRIBUTE_TAG_INFO;
 
-#define FileBasicInfo 0
 #define FileRenameInfo 3
 #define FileDispositionInfo 4
 #define FileAttributeTagInfo 9
@@ -1899,7 +1890,7 @@ svn_io__utf8_to_unicode_longpath(const WCHAR **result,
         }
     }
 
-    SVN_ERR(svn_utf__win32_utf8_to_utf16(&buffer, source,
+    SVN_ERR(svn_utf__win32_utf8_to_utf16(&(const WCHAR*)buffer, source,
                                          prefix, result_pool));
 
     /* Convert slashes to backslashes because the \\?\ path format
@@ -2325,83 +2316,6 @@ svn_io__win_rename_open_file(apr_file_t *file,
       return svn_error_wrap_apr(status, _("Can't move '%s' to '%s'"),
                                 svn_dirent_local_style(from_path, pool),
                                 svn_dirent_local_style(to_path, pool));
-    }
-
-  return SVN_NO_ERROR;
-}
-
-/* Number of micro-seconds between the beginning of the Windows epoch
- * (Jan. 1, 1601) and the Unix epoch (Jan. 1, 1970)
- */
-#ifndef APR_DELTA_EPOCH_IN_USEC
-#define APR_DELTA_EPOCH_IN_USEC   APR_TIME_C(11644473600000000)
-#endif
-
-svn_error_t *
-svn_io__win_set_file_basic_info(apr_file_t *file,
-                                const char *path,
-                                apr_time_t set_mtime,
-                                svn_boolean_t set_read_only,
-                                apr_pool_t *pool)
-{
-  FILE_BASIC_INFO info;
-  HANDLE hFile;
-  apr_status_t status;
-
-  apr_os_file_get(&hFile, file);
-
-  if (set_read_only)
-    {
-      status = win32_get_file_information_by_handle(hFile, FileBasicInfo,
-                                                    &info, sizeof(info));
-      if (status)
-        {
-          return svn_error_wrap_apr(status, _("Can't get attributes of '%s'"),
-                                    svn_dirent_local_style(path, pool));
-        }
-    }
-
-  info.CreationTime.QuadPart = 0;
-  info.LastAccessTime.QuadPart = 0;
-  info.ChangeTime.QuadPart = 0;
-
-  if (set_mtime == SVN_IO__WIN_TIME_UNCHANGED)
-    {
-      /* If you specify a value of zero for any of the XxxTime members of the
-         FILE_BASIC_INFORMATION structure, the ZwSetInformationFile function
-         keeps a file's current setting for that time.
-         https://docs.microsoft.com/windows-hardware/drivers/ddi/wdm/ns-wdm-_file_basic_information#remarks
-       */
-      info.LastWriteTime.QuadPart = 0;
-    }
-  else if (set_mtime == SVN_IO__WIN_TIME_SUSPEND_UPDATE)
-    {
-      /* File system updates the values of the LastAccessTime, LastWriteTime,
-         and ChangeTime members as appropriate after an I/O operation is
-         performed on a file. A driver or application can request that the
-         file system not update one or more of these members for I/O operations
-         that are performed on the caller's file handle by setting the
-         appropriate members to -1.
-         https://docs.microsoft.com/windows-hardware/drivers/ddi/wdm/ns-wdm-_file_basic_information#remarks
-       */
-      info.LastWriteTime.QuadPart = -1;
-    }
-  else
-    {
-      info.LastWriteTime.QuadPart = (set_mtime + APR_DELTA_EPOCH_IN_USEC) * 10;
-    }
-
-  if (set_read_only)
-    info.FileAttributes |= FILE_ATTRIBUTE_READONLY;
-  else
-    info.FileAttributes = 0;
-
-  status = win32_set_file_information_by_handle(hFile, FileBasicInfo,
-                                                &info, sizeof(info));
-  if (status)
-    {
-      return svn_error_wrap_apr(status, _("Can't set attributes of '%s'"),
-                                svn_dirent_local_style(path, pool));
     }
 
   return SVN_NO_ERROR;
@@ -2854,7 +2768,7 @@ stringbuf_from_aprfile(svn_stringbuf_t **result,
              correct, for instance, because the underlying handle could be
              pointing to a pipe.  We don't know that in advance, so attempt
              to read *one more* byte than necessary.  If we get an EOF, then
-             we're done and we have successfully avoided reading the file chunk-
+             we're done and we have succesfully avoided reading the file chunk-
              by-chunk.  If we don't, we fall through and do so to read the
              remaining part of the file. */
           svn_boolean_t eof;

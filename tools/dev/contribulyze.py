@@ -28,7 +28,7 @@
 #
 # Some Subversion project log messages include parseable data to help
 # track who's contributing what.  The exact syntax is described in
-# https://subversion.apache.org/docs/community-guide/conventions.html#crediting,
+# http://subversion.apache.org/docs/community-guide/conventions.html#crediting,
 # but here's an example, indented by three spaces, i.e., the "Patch by:"
 # starts at the beginning of a line:
 #
@@ -620,7 +620,7 @@ to help us keep track of whom to consider for commit access.  The list
 was generated from "svn&nbsp;log" output by <a
 href="http://svn.apache.org/repos/asf/subversion/trunk/tools/dev/contribulyze.py"
 >contribulyze.py</a>, which looks for log messages that use the <a
-href="https://subversion.apache.org/docs/community-guide/conventions.html#crediting"
+href="http://subversion.apache.org/docs/community-guide/conventions.html#crediting"
 >special contribution format</a>.</p>
 
 <p><i>Please do not use this list as a generic guide to who has
@@ -669,8 +669,7 @@ def drop(revision_url_pattern):
   # the top -- that way we know whom to look at first for commit access
   # proposals.
   sorted_contributors = sorted(Contributor.all_contributors.values(),
-                               key=Contributor.sort_key,
-                               reverse=True)
+                               key = Contributor.sort_key)
   for c in sorted_contributors:
     if c not in seen_contributors:
       if c.score() > 0:
@@ -722,9 +721,6 @@ def process_committers(committers):
       c.is_committer = True
       c.is_full_committer = in_full_committers
     line = committers.readline()
-  svn_role = Contributor.parse('svn-role <svnsvn{_AT_}svn-qavm.apache.org>')
-  Contributor.get(*svn_role).is_committer = True
-  Contributor.get(*svn_role).is_full_committer = True # elide it from the listing
 
 
 def usage():
@@ -734,8 +730,8 @@ def usage():
   print('Create HTML files in the current directory, rooted at index.html,')
   print('in which you can browse to see who contributed what.')
   print('')
-  print('The log input should use the contribution-tracking format defined in')
-  print('https://subversion.apache.org/docs/community-guide/conventions.html#crediting.')
+  print('The log input should use the contribution-tracking format defined')
+  print('in http://subversion.apache.org/docs/community-guide/conventions.html#crediting.')
   print('')
   print('Options:')
   print('')

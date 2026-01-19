@@ -24,7 +24,7 @@ dnl Get the version of Subversion, using m4's esyscmd() command to do this
 dnl at m4-time, since AC_INIT() requires it then.
 AC_INIT([subversion],
      [esyscmd($PYTHON build/getversion.py SVN subversion/include/svn_version.h)],
-     [https://subversion.apache.org/])
+     [http://subversion.apache.org/])
 
 AC_CONFIG_SRCDIR(subversion/include/svn_types.h)
 AC_CONFIG_AUX_DIR([build])
@@ -46,86 +46,6 @@ AC_SUBST([SWIG_LDFLAGS])
 # Generate config.nice early (before the arguments are munged)
 SVN_CONFIG_NICE(config.nice)
 
-# ==== Construcet .clangd ====================================================
-
-svn_dot_clangd_file="$abs_srcdir/.clangd"
-AC_ARG_ENABLE([dot-clangd],
-AC_HELP_STRING([--enable-dot-clangd],
-               [Generate a .clangd file at the root of the source tree]),
-[
-  AC_MSG_NOTICE([Creating $svn_dot_clangd_file])
-  svn_dot_clangdcc_contents='---
-# C
-If:
-  PathMatch: [.*\.[ch]]
-  PathExclude: [subversion/bindings/javahl/native/.*]
-
-CompileFlags:
-  Add:
-    - --language=c'
-
-  svn_dot_clangdxx_contents='---
-# C++
-If:
-  PathMatch: [.*\.[ch]pp|.*/bindings/javahl/native/.*\.h]
-
-CompileFlags:
-  Add:
-    - --language=c++'
-],
-[])
-
-AC_DEFUN([SVN_DOT_CLANGD_CC],
-[
-  if test "x$svn_dot_clangdcc_contents" != "x"; then
-    indent="    -"
-    dnl Split multiple flags to one per line.
-    set fake [$1]
-    while test "${#}" -gt 1; do
-      line="${2}"; shift
-      svn_dot_clangdcc_contents=`cat <<EOF
-$svn_dot_clangdcc_contents
-$indent $line
-EOF
-      `
-    done
-  fi
-])
-
-AC_DEFUN([SVN_DOT_CLANGD_CXX],
-[
-  if test "x$svn_dot_clangdxx_contents" != "x"; then
-    indent="    -"
-    dnl Split multiple flags to one per line.
-    set fake [$1]
-    while test "${#}" -gt 1; do
-      line="${2}"; shift
-svn_dot_clangdxx_contents=`cat <<EOF
-$svn_dot_clangdxx_contents
-$indent $line
-EOF
-      `
-    done
-  fi
-])
-
-AC_DEFUN([SVN_DOT_CLANGD],[
-  SVN_DOT_CLANGD_CC([$1])
-  SVN_DOT_CLANGD_CXX([$1])
-])
-
-
-dnl Add well-known source and build paths to .clangd
-SVN_DOT_CLANGD([-I$abs_builddir/subversion])
-SVN_DOT_CLANGD([-I$abs_srcdir/subversion/include])
-SVN_DOT_CLANGD([-I$abs_srcdir/subversion/tests])
-SVN_DOT_CLANGD([-I$abs_srcdir/subversion/bindings/swig/perl/libsvn_swig_perl])
-SVN_DOT_CLANGD([-I$abs_srcdir/subversion/bindings/swig/python/libsvn_swig_py])
-SVN_DOT_CLANGD([-I$abs_srcdir/subversion/bindings/swig/ruby/libsvn_swig_ruby])
-SVN_DOT_CLANGD_CXX([-I$abs_srcdir/subversion/bindings/cxx/include])
-SVN_DOT_CLANGD_CXX([-I$abs_srcdir/subversion/bindings/cxx/tests])
-SVN_DOT_CLANGD_CXX([-I$abs_srcdir/subversion/bindings/javahl/native])
-
 # ==== Check for programs ====================================================
 
 # Look for a C compiler (before anything can set CFLAGS)
@@ -136,32 +56,6 @@ SVN_CC_MODE_SETUP
 # Look for a C++ compiler (before anything can set CXXFLAGS)
 CXXUSERFLAGS="$CXXFLAGS"
 AC_PROG_CXX
-dnl Select C++ language level for GNU-like compilers
-dnl This is an advanced option for maintainers
-AC_ARG_ENABLE([c++],
-AS_HELP_STRING([--enable-c++=VER],
-               [Select C++ language standard for g++-like compilers]),
-[
-    if test "$enableval" = "yes"; then
-      cxx_language_level=any
-    elif test  "$enableval" = "no"; then
-      cxx_language_level=any
-      AC_MSG_WARN([--disable-c++ has no effect])
-    else
-      case "$enableval" in
-        [c++[0-9]*])   cxx_language_level="$enableval";;
-        [gnu++[0-9]*]) cxx_language_level="$enableval";;
-        [[0-9]*])      cxx_language_level="c++$enableval";;
-        [*])           cxx_language_level=undefined;;
-      esac
-      if test "$cxx_language_level" = undefined; then
-        AC_MSG_ERROR([--enable-c++ does not accept $enableval])
-      fi
-    fi
-],
-[
-    cxx_language_level=any
-])
 SVN_CXX_MODE_SETUP
 
 # Look for a C pre-processor
@@ -221,7 +115,7 @@ AC_SUBST(SVN_APR_MAJOR_VERSION)
 SVN_LT_SOVERSION="-version-info $svn_lib_ver"
 AC_SUBST(SVN_LT_SOVERSION)
 AC_DEFINE_UNQUOTED(SVN_SOVERSION, $svn_lib_ver,
-                   [Subversion library major version])
+                   [Subversion library major verson])
 
 dnl Search for pkg-config
 AC_PATH_PROG(PKG_CONFIG, pkg-config)
@@ -233,10 +127,6 @@ if test "$svn_lib_serf" = "yes"; then
   AC_DEFINE([SVN_HAVE_SERF], 1,
             [Defined if support for Serf is enabled])
 fi
-
-dnl Checksum backend
-AC_DEFINE([SVN_CHECKSUM_BACKEND_APR], 1,
-          [Defined if svn should use APR to compute checksums])
 
 dnl Search for apr_memcache (only affects fs_fs)
 SVN_LIB_APR_MEMCACHE
@@ -262,10 +152,10 @@ SVN_FIND_APACHE(20051115, $apache_whitelist_ver)
 dnl Search for SQLite.  If you change SQLITE_URL from a .zip to
 dnl something else also update build/ac-macros/sqlite.m4 to reflect
 dnl the correct command to unpack the downloaded file.
-SQLITE_MINIMUM_VER="3.24.0"
-SQLITE_RECOMMENDED_VER="3.39.4"
+SQLITE_MINIMUM_VER="3.8.2"
+SQLITE_RECOMMENDED_VER="3.8.11.1"
 dnl Used to construct the SQLite download URL.
-SQLITE_RECOMMENDED_VER_REL_YEAR="2022"
+SQLITE_RECOMMENDED_VER_REL_YEAR="2015"
 SQLITE_URL="https://www.sqlite.org/$SQLITE_RECOMMENDED_VER_REL_YEAR/sqlite-amalgamation-$(printf %d%02d%02d%02d $(echo ${SQLITE_RECOMMENDED_VER} | sed -e 's/\./ /g')).zip"
 
 SVN_LIB_SQLITE(${SQLITE_MINIMUM_VER}, ${SQLITE_RECOMMENDED_VER},
@@ -332,8 +222,6 @@ SVN_EXPAND_VAR(svn_localedir, "${exp_localedir}")
 AC_DEFINE_UNQUOTED(SVN_LOCALE_DIR, "${svn_localedir}",
                    [Defined to be the path to the installed locale dirs])
 
-dnl Libtool has been broken for decades, incorrectly passing 'cru' to 'ar'
-AR_FLAGS=${AR_FLAGS:-cr}
 dnl Check for libtool -- we'll definitely need it for all our shared libs!
 AC_MSG_NOTICE([configuring libtool now])
 ifdef([LT_INIT], [LT_INIT], [AC_PROG_LIBTOOL])
@@ -463,7 +351,7 @@ fi
 dnl Check for doxygen
 doxygen=yes
 AC_ARG_WITH(doxygen,
-AS_HELP_STRING([--with-doxygen=PATH],
+AC_HELP_STRING([--with-doxygen=PATH],
                [Specify the command to run doxygen]),
 [
     doxygen="$withval"
@@ -871,7 +759,7 @@ AH_BOTTOM([
 #endif
 
 /* Macro used to specify that a variable is intentionally left unused.
-   Suppresses compiler warnings about the variable being unused.  */
+   Supresses compiler warnings about the variable being unused.  */
 #define SVN_UNUSED(v) ( (void)(v) )
 ])
 
@@ -956,18 +844,21 @@ fi
 
 dnl plaintext passwords -------------------
 AC_ARG_ENABLE(plaintext-password-storage,
-AS_HELP_STRING([--disable-plaintext-password-storage],
-               [Disable on-disk caching of plaintext passwords and passphrases.
-                (Leaving this functionality enabled will not force Subversion
+AS_HELP_STRING([--enable-plaintext-password-storage],
+               [Enable on-disk caching of plaintext passwords and passphrases.
+                (Enabling this functionality will not force Subversion
                 to store passwords in plaintext, but does permit users to
                 explicitly allow that behavior via runtime configuration.)]),
-[
-   if test "$enableval" = "no"; then
-      AC_MSG_NOTICE([Disabling plaintext password/passphrase storage])
-      AC_DEFINE(SVN_DISABLE_PLAINTEXT_PASSWORD_STORAGE, 1,
-                [Defined if plaintext password/passphrase storage is disabled])
-   fi
-])
+[plaintext_passwordd_storage="$enableval"],
+[plaintext_passwordd_storage="no"])
+
+if test "$plaintext_passwordd_storage" = "yes"; then
+  AC_MSG_WARN([Enabling plaintext password/passphrase storage])
+else
+  AC_MSG_NOTICE([Disabling plaintext password/passphrase storage])
+  AC_DEFINE(SVN_DISABLE_PLAINTEXT_PASSWORD_STORAGE, 1,
+            [Defined if plaintext password/passphrase storage is disabled])
+fi
 
 dnl Build and install rules -------------------
 
@@ -1014,6 +905,9 @@ AC_SUBST(BDB_TEST_DEPS)
 AC_SUBST(BDB_TEST_PROGRAMS)
 
 dnl Check for header files ----------------
+
+dnl Standard C headers
+AC_HEADER_STDC
 
 dnl Check for typedefs, structures, and compiler characteristics ----------
 
@@ -1109,7 +1003,6 @@ AC_SUBST([libsvn_diff_LDFLAGS])
 AC_SUBST([libsvn_fs_LDFLAGS])
 AC_SUBST([libsvn_fs_base_LDFLAGS])
 AC_SUBST([libsvn_fs_fs_LDFLAGS])
-AC_SUBST([libsvn_fs_x_LDFLAGS])
 AC_SUBST([libsvn_fs_util_LDFLAGS])
 AC_SUBST([libsvn_ra_LDFLAGS])
 AC_SUBST([libsvn_ra_local_LDFLAGS])
@@ -1162,7 +1055,6 @@ AS_HELP_STRING([--enable-maintainer-mode],
 
         dnl Add flags that all versions of GCC (should) support
         CMAINTAINERFLAGS="-Wall -Wpointer-arith -Wwrite-strings -Wshadow -Wformat=2 -Wunused -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Wno-multichar -Wredundant-decls -Wnested-externs -Winline -Wno-long-long -Wbad-function-cast $CMAINTAINERFLAGS"
-        SVN_DOT_CLANGD_CC([$CMAINTAINERFLAGS])
       fi
       if test "$GXX" = "yes"; then
         AC_MSG_NOTICE([maintainer-mode: adding G++ warning flags])
@@ -1181,7 +1073,6 @@ AS_HELP_STRING([--enable-maintainer-mode],
 
         dnl Add flags that all versions of G++ (should) support
         CXXMAINTAINERFLAGS="-Wall -Wpointer-arith -Wwrite-strings -Wshadow -Wunused -Wunreachable-code $CXXMAINTAINERFLAGS"
-        SVN_DOT_CLANGD_CXX([$CXXMAINTAINERFLAGS])
       fi
     fi
 ])
@@ -1217,7 +1108,6 @@ if test "$enable_debugging" = "yes" ; then
   dnl AP_DEBUG enables specific (Apache) features for developer builds
   CFLAGS="$CFLAGS -DSVN_DEBUG -DAP_DEBUG"
   CXXFLAGS="$CXXFLAGS -DSVN_DEBUG -DAP_DEBUG"
-  SVN_DOT_CLANGD([-DSVN_DEBUG -DAP_DEBUG])
 elif test "$enable_debugging" = "no" ; then
   AC_MSG_NOTICE([Disabling debugging])
   CFLAGS=["`echo $CFLAGS' ' | $SED -e 's/-g[0-9] //g' -e 's/-g //g'`"]
@@ -1225,7 +1115,6 @@ elif test "$enable_debugging" = "no" ; then
   dnl Compile with NDEBUG to get rid of assertions
   CFLAGS="$CFLAGS -DNDEBUG"
   CXXFLAGS="$CXXFLAGS -DNDEBUG"
-  SVN_DOT_CLANGD([-DNDEBUG])
 # elif test "$enable_debugging" = "maybe" ; then
 #   # do nothing
 fi
@@ -1332,7 +1221,7 @@ AC_SUBST(MOD_ACTIVATION)
 
 
 AC_ARG_ENABLE(gcov,
-AS_HELP_STRING([--enable-gcov],
+AC_HELP_STRING([--enable-gcov],
                [Turn on gcov coverage testing (GCC only).]),
 [
     if test "$enableval" = "yes" ; then
@@ -1580,21 +1469,21 @@ AS_HELP_STRING([--enable-runtime-module-search],
       fi
       AC_DEFINE(SVN_USE_DSO, 1,
                 [Defined if svn should try to load DSOs])
+
+      dnl Mac OS X uses libname.MAJOR.SOVERSION.dylib
+      dnl Most other unixes use libname.MAJOR.so.SOVERSION
+      case "$host" in
+        *-*-darwin*)
+          AC_DEFINE(SVN_DSO_SUFFIX_FMT, ["%d.%d.dylib"],
+                    [Shared library file name suffix format])
+          ;;
+        *)
+          AC_DEFINE(SVN_DSO_SUFFIX_FMT, ["%d.so.%d"],
+                    [Shared library file name suffix format])
+          ;;
+      esac
     fi
 ])
-
-dnl Mac OS X uses libname.MAJOR.SOVERSION.dylib
-dnl Most other unixes use libname.MAJOR.so.SOVERSION
-case "$host" in
-  *-*-darwin*)
-    AC_DEFINE(SVN_DSO_SUFFIX_FMT, ["%d.%d.dylib"],
-              [Shared library file name suffix format])
-    ;;
-  *)
-    AC_DEFINE(SVN_DSO_SUFFIX_FMT, ["%d.so.%d"],
-              [Shared library file name suffix format])
-    ;;
-esac
 
 if test "$svn_enable_shared" = "no" || test "$use_dso" != "yes"; then
   AC_DEFINE(SVN_LIBSVN_RA_LINKS_RA_LOCAL, 1,
@@ -1871,13 +1760,6 @@ AC_DEFINE_UNQUOTED([SVN_BUILD_TARGET], "${target}",
 
 AC_OUTPUT
 
-# ==== Generate the .clangd file =============================================
-if test "x$svn_dot_clangdcc_contents$svn_dot_clangdxx_contents" != "x" ; then
-  AC_MSG_NOTICE([Writing $svn_dot_clangd_file])
-  echo "$svn_dot_clangdcc_contents" > "$svn_dot_clangd_file"
-  echo "$svn_dot_clangdxx_contents" >> "$svn_dot_clangd_file"
-fi
-
 # ==== Print final messages to user ==========================================
 
 dnl Configure is long - users tend to miss warnings printed during it.
@@ -1903,7 +1785,7 @@ https://www.gnu.org/licenses/agpl-3.0.html
 http://opensource.org/licenses/AGPL-3.0
 
 The Berkeley DB backend to Subversion is deprecated; see
-https://subversion.apache.org/docs/release-notes/1.8#bdb-deprecated
+http://subversion.apache.org/docs/release-notes/1.8#bdb-deprecated
 
 The Subversion developers have not tested Subversion with Berkeley DB 6 for
 technical problems or bugs.

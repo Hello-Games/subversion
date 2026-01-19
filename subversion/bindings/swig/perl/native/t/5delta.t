@@ -45,5 +45,3 @@ is($result, $tgttext, 'delta self test');
 
 # TEST
 is("$md5", 'a22b3dadcbddac48d2f1eae3ec5fb86a', 'md5 matched');
-
-close $aresult;

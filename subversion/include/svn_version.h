@@ -61,7 +61,7 @@ extern "C" {
  * Modify when new functionality is added or new interfaces are
  * defined, but all changes are backward compatible.
  */
-#define SVN_VER_MINOR      16
+#define SVN_VER_MINOR      14
 
 /**
  * Patch number.
@@ -70,7 +70,7 @@ extern "C" {
  *
  * @since New in 1.1.
  */
-#define SVN_VER_PATCH      0
+#define SVN_VER_PATCH      6
 
 
 /** @deprecated Provided for backward compatibility with the 1.0 API. */
@@ -346,7 +346,7 @@ svn_version_ext_build_time(const svn_version_extended_t *ext_info);
  * @return The canonical host triplet (arch-vendor-osname) of the
  * system where libsvn_subr was compiled.
  *
- * @note On Unix-like systems (including Mac OS X), this string is the
+ * @note On Unix-like systems (includng Mac OS X), this string is the
  * same as the output of the config.guess script.
  *
  * @since New in 1.8.
@@ -389,16 +389,6 @@ svn_version_ext_runtime_host(const svn_version_extended_t *ext_info);
  */
 const char *
 svn_version_ext_runtime_osname(const svn_version_extended_t *ext_info);
-
-/**
- * Accessor for svn_version_extended_t.
- *
- * @return The name of the current locale character set.
- *
- * @since New in 1.15.
- */
-const char *
-svn_version_ext_character_encoding(const svn_version_extended_t *ext_info);
 
 /**
  * Dependent library information.

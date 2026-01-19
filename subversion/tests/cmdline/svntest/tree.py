@@ -553,9 +553,7 @@ def get_text(path):
   if not os.path.isfile(path):
     return None
 
-  with open(path, 'r') as fp:
-    content = fp.read()
-  return content
+  return open(path, 'r').read()
 
 
 def get_child(node, name):

@@ -151,8 +151,6 @@ AC_DEFUN(SVN_LIB_BERKELEY_DB,
       fi
     fi
   fi
-
-  SVN_DOT_CLANGD([$SVN_DB_INCLUDES])
 ])
 
 

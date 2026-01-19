@@ -660,7 +660,7 @@ svn_wc__conflict_skel_resolve(svn_boolean_t *completely_resolved,
           /* If no conflicted property names left */
           if (!c->next->next->children)
             {
-              /* Remove the property conflict skel from the linked list */
+              /* Remove the propery conflict skel from the linked list */
              *pconflict = (*pconflict)->next;
              continue;
             }
@@ -3365,13 +3365,6 @@ svn_wc_resolved_conflict5(svn_wc_context_t *wc_ctx,
                           void *notify_baton,
                           apr_pool_t *scratch_pool)
 {
-  svn_boolean_t store_pristine;
-
-  SVN_ERR(svn_wc__get_settings(NULL, &store_pristine, wc_ctx, local_abspath,
-                               scratch_pool));
-  if (!store_pristine)
-    return svn_error_create(SVN_ERR_WC_DEPRECATED_API_STORE_PRISTINE, NULL, NULL);
-
   return svn_error_trace(svn_wc__resolve_conflicts(wc_ctx, local_abspath,
                                                    depth, resolve_text,
                                                    resolve_prop, resolve_tree,
@@ -3906,7 +3899,7 @@ svn_wc__guess_incoming_move_target_nodes(apr_array_header_t **possible_targets,
    * cannot be modified (e.g. replaced or deleted nodes) don't count.
    * Nodes which are of a different node kind don't count either.
    * Ignore switched nodes as well, since that is an unlikely case during
-   * update/switch/merge conflict resolution. And externals shouldn't even
+   * update/swtich/merge conflict resolution. And externals shouldn't even
    * be on our candidate list in the first place.
    * If multiple candidates match these criteria, choose the one which
    * shares the longest common ancestor with the victim. */

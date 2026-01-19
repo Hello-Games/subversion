@@ -16,16 +16,8 @@
 #
 # ---------------------------------------------------------------------------
 #
-# This code is no longer maintained "upstream", so consider this module
-# a "friendly fork" and is canonical for Apache Subversion's purposes.
-#
-# Use of systemd's single-process mechanism and re-launching of a daemon
-# can greatly simplify daemon coding/management. A possibly-svn-relevant
-# example can be found at:
-#   https://github.com/apache/infrastructure-svnauthz
-#
-# Historical locations for this module were found on svn.webdav.org,
-# gstein.googlecode.com, and (most recently) gstein.svn.beanstalkapp.com.
+# This software lives at:
+#    http://gstein.googlecode.com/svn/trunk/python/daemonize.py
 #
 
 import os
@@ -64,7 +56,7 @@ class Daemon(object):
       # duplicate the exit code
       sys.exit(e.code)
     except (ChildTerminatedAbnormally, ChildForkFailed,
-            DaemonTerminatedAbnormally, DaemonForkFailed) as e:
+            DaemonTerminatedAbnormally, DaemonForkFailed), e:
       sys.stderr.write('ERROR: %s\n' % e)
       sys.exit(1)
     except ChildResumedIncorrectly:

@@ -62,8 +62,8 @@ static int proxy_request_fixup(request_rec *r,
     r->handler = "proxy-server";
 
     /* Rewrite the Destination header if present (for COPY/MOVE requests).
-    The Destination header contains a full URL pointing to the slave,
-    which needs to be rewritten to point to the master. */
+       The Destination header contains a full URL pointing to the slave,
+       which needs to be rewritten to point to the master. */
     {
         const char *destination = apr_table_get(r->headers_in, "Destination");
         if (destination) {
@@ -75,28 +75,37 @@ static int proxy_request_fixup(request_rec *r,
                 apr_uri_parse(r->pool, master_uri, &master_uri_parsed) == APR_SUCCESS &&
                 dest_uri.path) {
                 const char *dest_path = svn_urlpath__canonicalize(dest_uri.path,
-                                                                r->pool);
+                                                                  r->pool);
+                /* URL-encode root_dir for comparison since dest_path is
+                   already encoded (from the Destination header). */
+                const char *root_dir_encoded = svn_path_uri_encode(root_dir,
+                                                                   r->pool);
                 /* Check if destination path starts with root_dir */
-                if (strncmp(dest_path, root_dir, strlen(root_dir)) == 0) {
-                    const char *remainder = dest_path + strlen(root_dir);
+                if (strncmp(dest_path, root_dir_encoded,
+                            strlen(root_dir_encoded)) == 0) {
+                    const char *remainder = dest_path + strlen(root_dir_encoded);
                     const char *master_path = svn_urlpath__canonicalize(
                                                     master_uri_parsed.path,
                                                     r->pool);
+                    /* URL-encode master_path, then concatenate with remainder
+                       which is already encoded. */
+                    const char *master_path_encoded = svn_path_uri_encode(
+                                                          master_path, r->pool);
                     const char *new_path = apr_pstrcat(r->pool,
-                                                        master_path,
-                                                        remainder,
-                                                        SVN_VA_NULL);
-                    /* Reconstruct the destination URL with master's
-                        host and rewritten path */
+                                                       master_path_encoded,
+                                                       remainder,
+                                                       SVN_VA_NULL);
+                    /* Reconstruct the destination URL with master's host and
+                       rewritten path. Do NOT re-encode new_path since the
+                       remainder portion is already URL-encoded. */
                     dest_uri.hostname = master_uri_parsed.hostname;
                     dest_uri.scheme = master_uri_parsed.scheme;
                     dest_uri.port = master_uri_parsed.port;
                     dest_uri.port_str = master_uri_parsed.port_str;
-                    dest_uri.path = (char *)svn_path_uri_encode(new_path,
-                                                                r->pool);
+                    dest_uri.path = (char *)new_path;
 
                     apr_table_set(r->headers_in, "Destination",
-                                apr_uri_unparse(r->pool, &dest_uri, 0));
+                                  apr_uri_unparse(r->pool, &dest_uri, 0));
                 }
             }
         }

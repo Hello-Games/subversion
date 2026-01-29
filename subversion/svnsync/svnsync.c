@@ -1464,8 +1464,11 @@ replay_rev_finished(svn_revnum_t revision,
                                     ? &rev_str : NULL,
                                   NULL, subpool));
 
-  /* Notify the user that we copied revision properties. */
-  if (! rb->sb->quiet)
+  /* Notify the user that we copied revision properties.
+     If we used commit-allow-rev-props, author and date were set during the
+     commit itself, so no additional "copied properties" message is needed
+     (the commit_callback already printed "Committed revision X."). */
+  if (! rb->sb->quiet && !rb->has_commit_allow_rev_props_capability)
     SVN_ERR(log_properties_copied(filtered_count > 0, revision, subpool));
 
   svn_pool_destroy(subpool);
@@ -1607,6 +1610,12 @@ do_synchronize(svn_ra_session_t *to_session,
                                 &rb->has_commit_allow_rev_props_capability,
                                 SVN_RA_CAPABILITY_COMMIT_ALLOW_REV_PROPS,
                                 pool));
+
+  if (! baton->quiet && rb->has_commit_allow_rev_props_capability)
+    SVN_ERR(svn_cmdline_printf(pool,
+                               _("Destination supports commit-time author "
+                                 "and date; no post-commit revprop sync "
+                                 "needed.\n")));
 
   start_revision = last_merged + 1;
   end_revision = from_latest;

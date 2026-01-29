@@ -1029,6 +1029,7 @@ typedef struct replay_baton_t {
   subcommand_baton_t *sb;
   svn_boolean_t has_commit_revprops_capability;
   svn_boolean_t has_atomic_revprops_capability;
+  svn_boolean_t has_commit_allow_rev_props_capability;
   int normalized_rev_props_count;
   int normalized_node_props_count;
   const char *to_root;
@@ -1076,6 +1077,20 @@ filter_exclude_date_author_sync(const char *key)
     return TRUE;
   else if (strncmp(key, SVNSYNC_PROP_PREFIX,
                    sizeof(SVNSYNC_PROP_PREFIX) - 1) == 0)
+    return TRUE;
+
+  return FALSE;
+}
+
+/* Return TRUE iff KEY is the name of any svnsync property.
+ * Implements filter_func_t. Use with filter_props() to filter out
+ * only svnsync properties, allowing svn:date and svn:author to pass through.
+ */
+static svn_boolean_t
+filter_exclude_sync_only(const char *key)
+{
+  if (strncmp(key, SVNSYNC_PROP_PREFIX,
+              sizeof(SVNSYNC_PROP_PREFIX) - 1) == 0)
     return TRUE;
 
   return FALSE;
@@ -1285,14 +1300,31 @@ replay_rev_started(svn_revnum_t revision,
      all the revision properties from the source repositories, except
      'svn:author' and 'svn:date', those are not guaranteed to get
      through the editor anyway.
+     If we're syncing to a server that supports commit-allow-rev-props,
+     we can include svn:author and svn:date in the initial commit.
      If we're syncing to an non-commit-revprops capable server, filter
      out all revprops except svn:log and add them later in
      revplay_rev_finished. */
-  filtered = filter_props(&filtered_count, rev_props,
-                          (rb->has_commit_revprops_capability
-                            ? filter_exclude_date_author_sync
-                            : filter_include_log),
-                          pool);
+  if (rb->has_commit_allow_rev_props_capability)
+    {
+      /* Target supports setting author/date during commit, so only
+         filter out svnsync-specific properties. */
+      filtered = filter_props(&filtered_count, rev_props,
+                              filter_exclude_sync_only, pool);
+    }
+  else if (rb->has_commit_revprops_capability)
+    {
+      /* Target supports revprops in commit but not author/date, so
+         filter out author, date and svnsync properties. */
+      filtered = filter_props(&filtered_count, rev_props,
+                              filter_exclude_date_author_sync, pool);
+    }
+  else
+    {
+      /* Target doesn't support commit revprops, so only include log. */
+      filtered = filter_props(&filtered_count, rev_props,
+                              filter_include_log, pool);
+    }
 
   /* svn_ra_get_commit_editor3 requires the log message to be
      set. It's possible that we didn't receive 'svn:log' here, so we
@@ -1373,13 +1405,29 @@ replay_rev_finished(svn_revnum_t revision,
 
   /* Ok, we're done with the data, now we just need to copy the remaining
      'svn:date' and 'svn:author' revprops and we're all set.
+     If the target supports commit-allow-rev-props, the author and date
+     were already set correctly during the commit, so we don't need to
+     update them here.
      If the server doesn't support revprops-in-a-commit, we still have to
      set all revision properties except svn:log. */
-  filtered = filter_props(&filtered_count, rev_props,
-                          (rb->has_commit_revprops_capability
-                            ? filter_include_date_author_sync
-                            : filter_exclude_log),
-                          subpool);
+  if (rb->has_commit_allow_rev_props_capability)
+    {
+      /* Author and date were set during commit, nothing more needed. */
+      filtered_count = 0;
+      filtered = apr_hash_make(subpool);
+    }
+  else if (rb->has_commit_revprops_capability)
+    {
+      /* Need to set author and date after commit. */
+      filtered = filter_props(&filtered_count, rev_props,
+                              filter_include_date_author_sync, subpool);
+    }
+  else
+    {
+      /* Need to set all revprops except log after commit. */
+      filtered = filter_props(&filtered_count, rev_props,
+                              filter_exclude_log, subpool);
+    }
 
   /* If necessary, normalize encoding and line ending style, and add the number
      of EOL-normalized properties to the overall count in the replay baton. */
@@ -1387,8 +1435,9 @@ replay_rev_finished(svn_revnum_t revision,
                                      rb->sb->source_prop_encoding, pool));
   rb->normalized_rev_props_count += normalized_count;
 
-  SVN_ERR(write_revprops(&filtered_count, rb->to_session, revision, filtered,
-                         NULL, subpool));
+  if (apr_hash_count(filtered) > 0)
+    SVN_ERR(write_revprops(&filtered_count, rb->to_session, revision, filtered,
+                           NULL, subpool));
 
   /* Remove all extra properties in TARGET. */
   SVN_ERR(remove_props_not_in_source(rb->to_session, revision,
@@ -1549,6 +1598,14 @@ do_synchronize(svn_ra_session_t *to_session,
   SVN_ERR(svn_ra_has_capability(rb->to_session,
                                 &rb->has_atomic_revprops_capability,
                                 SVN_RA_CAPABILITY_ATOMIC_REVPROPS,
+                                pool));
+
+  /* Check if the target supports commit-time setting of author/date.
+     This allows us to set the correct author and date in the initial
+     commit rather than requiring a separate revprop change. */
+  SVN_ERR(svn_ra_has_capability(rb->to_session,
+                                &rb->has_commit_allow_rev_props_capability,
+                                SVN_RA_CAPABILITY_COMMIT_ALLOW_REV_PROPS,
                                 pool));
 
   start_revision = last_merged + 1;

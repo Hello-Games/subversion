@@ -2265,6 +2265,16 @@ svn_ra_has_capability(svn_ra_session_t *session,
  */
 #define SVN_RA_CAPABILITY_LIST "list"
 
+/**
+ * The capability of a server to accept svn:author and svn:date
+ * revision properties in a commit without overriding them.
+ * This is useful for tools like svnsync that need to preserve
+ * the original author and date from the source repository.
+ *
+ * @since New in 1.15.
+ */
+#define SVN_RA_CAPABILITY_COMMIT_ALLOW_REV_PROPS "commit-allow-rev-props"
+
 
 /*       *** PLEASE READ THIS IF YOU ADD A NEW CAPABILITY ***
  *

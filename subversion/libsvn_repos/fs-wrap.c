@@ -129,10 +129,11 @@ svn_repos_fs_commit_txn(const char **conflict_p,
 
 
 svn_error_t *
-svn_repos_fs_begin_txn_for_commit2(svn_fs_txn_t **txn_p,
+svn_repos_fs_begin_txn_for_commit3(svn_fs_txn_t **txn_p,
                                    svn_repos_t *repos,
                                    svn_revnum_t rev,
                                    apr_hash_t *revprop_table,
+                                   apr_uint32_t flags,
                                    apr_pool_t *pool)
 {
   apr_array_header_t *revprops;
@@ -149,7 +150,7 @@ svn_repos_fs_begin_txn_for_commit2(svn_fs_txn_t **txn_p,
   /* Begin the transaction, ask for the fs to do on-the-fly lock checks.
      We fetch its name, too, so the start-commit hook can use it.  */
   SVN_ERR(svn_fs_begin_txn2(&txn, repos->fs, rev,
-                            SVN_FS_TXN_CHECK_LOCKS, pool));
+                            SVN_FS_TXN_CHECK_LOCKS | flags, pool));
   err = svn_fs_txn_name(&txn_name, txn, pool);
   if (err)
     return svn_error_compose_create(err, svn_fs_abort_txn(txn, pool));
@@ -173,6 +174,18 @@ svn_repos_fs_begin_txn_for_commit2(svn_fs_txn_t **txn_p,
   /* We have API promise that *TXN_P is unaffected on failure. */
   *txn_p = txn;
   return SVN_NO_ERROR;
+}
+
+
+svn_error_t *
+svn_repos_fs_begin_txn_for_commit2(svn_fs_txn_t **txn_p,
+                                   svn_repos_t *repos,
+                                   svn_revnum_t rev,
+                                   apr_hash_t *revprop_table,
+                                   apr_pool_t *pool)
+{
+  return svn_repos_fs_begin_txn_for_commit3(txn_p, repos, rev, revprop_table,
+                                            0, pool);
 }
 
 

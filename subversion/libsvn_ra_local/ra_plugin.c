@@ -873,6 +873,7 @@ svn_ra_local__get_commit_editor(svn_ra_session_t *session,
 {
   svn_ra_local__session_baton_t *sess = session->priv;
   struct deltify_etc_baton *deb = apr_palloc(pool, sizeof(*deb));
+  apr_uint32_t txn_flags = 0;
 
   /* Set repos_root_url in commit info */
   remap_commit_callback(&callback, &callback_baton, session,
@@ -897,18 +898,29 @@ svn_ra_local__get_commit_editor(svn_ra_session_t *session,
 
   /* Copy the revprops table so we can add the username. */
   revprop_table = apr_hash_copy(pool, revprop_table);
-  svn_hash_sets(revprop_table, SVN_PROP_REVISION_AUTHOR,
-                svn_string_create(sess->username, pool));
+
+  /* Only set the author to the session username if the caller hasn't
+     already provided one. This allows trusted callers like svnsync to
+     preserve the original author from the source repository. */
+  if (!svn_hash_gets(revprop_table, SVN_PROP_REVISION_AUTHOR))
+    svn_hash_sets(revprop_table, SVN_PROP_REVISION_AUTHOR,
+                  svn_string_create(sess->username, pool));
+
+  /* If the caller provided a date, set the SVN_FS_TXN_CLIENT_DATE flag
+     so that the filesystem will use that date instead of the current time. */
+  if (svn_hash_gets(revprop_table, SVN_PROP_REVISION_DATE))
+    txn_flags |= SVN_FS_TXN_CLIENT_DATE;
+
   svn_hash_sets(revprop_table, SVN_PROP_TXN_CLIENT_COMPAT_VERSION,
                 svn_string_create(SVN_VER_NUMBER, pool));
   svn_hash_sets(revprop_table, SVN_PROP_TXN_USER_AGENT,
                 svn_string_create(sess->useragent, pool));
 
   /* Get the repos commit-editor */
-  return svn_repos_get_commit_editor5
+  return svn_repos_get_commit_editor6
          (editor, edit_baton, sess->repos, NULL,
           svn_path_uri_decode(sess->repos_url, pool), sess->fs_path->data,
-          revprop_table, deltify_etc, deb, NULL, NULL, pool);
+          revprop_table, txn_flags, deltify_etc, deb, NULL, NULL, pool);
 }
 
 
@@ -1676,6 +1688,7 @@ svn_ra_local__has_capability(svn_ra_session_t *session,
       || strcmp(capability, SVN_RA_CAPABILITY_EPHEMERAL_TXNPROPS) == 0
       || strcmp(capability, SVN_RA_CAPABILITY_GET_FILE_REVS_REVERSE) == 0
       || strcmp(capability, SVN_RA_CAPABILITY_LIST) == 0
+      || strcmp(capability, SVN_RA_CAPABILITY_COMMIT_ALLOW_REV_PROPS) == 0
       )
     {
       *has = TRUE;
@@ -1805,10 +1818,15 @@ svn_ra_local__get_commit_ev2(svn_editor_t **editor,
   SVN_ERR(apply_lock_tokens(sess->fs, sess->fs_path->data, lock_tokens,
                             session->pool, scratch_pool));
 
-  /* Copy the REVPROPS and insert the author/username.  */
+  /* Copy the REVPROPS and conditionally insert the author/username.  */
   revprops = apr_hash_copy(scratch_pool, revprops);
-  svn_hash_sets(revprops, SVN_PROP_REVISION_AUTHOR,
-                svn_string_create(sess->username, scratch_pool));
+
+  /* Only set the author to the session username if the caller hasn't
+     already provided one. This allows trusted callers like svnsync to
+     preserve the original author from the source repository. */
+  if (!svn_hash_gets(revprops, SVN_PROP_REVISION_AUTHOR))
+    svn_hash_sets(revprops, SVN_PROP_REVISION_AUTHOR,
+                  svn_string_create(sess->username, scratch_pool));
 
   return svn_error_trace(svn_repos__get_commit_ev2(
                            editor, sess->repos, NULL /* authz */,

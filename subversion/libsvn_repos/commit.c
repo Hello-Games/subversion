@@ -88,6 +88,10 @@ struct edit_baton
   /* Does this set of interfaces 'own' the commit transaction? */
   svn_boolean_t txn_owner;
 
+  /* Flags to pass to svn_repos_fs_begin_txn_for_commit3() when
+     creating the transaction (e.g., SVN_FS_TXN_CLIENT_DATE). */
+  apr_uint32_t txn_flags;
+
   /* svn transaction associated with this edit (created in
      open_root, or supplied by the public API caller). */
   svn_fs_txn_t *txn;
@@ -434,10 +438,11 @@ open_root(void *edit_baton,
      make our own. */
   if (eb->txn_owner)
     {
-      SVN_ERR(svn_repos_fs_begin_txn_for_commit2(&(eb->txn),
+      SVN_ERR(svn_repos_fs_begin_txn_for_commit3(&(eb->txn),
                                                  eb->repos,
                                                  youngest,
                                                  eb->revprop_table,
+                                                 eb->txn_flags,
                                                  eb->pool));
     }
   else /* Even if we aren't the owner of the transaction, we might
@@ -992,13 +997,14 @@ fetch_base_func(const char **filename,
 /*** Public interfaces. ***/
 
 svn_error_t *
-svn_repos_get_commit_editor5(const svn_delta_editor_t **editor,
+svn_repos_get_commit_editor6(const svn_delta_editor_t **editor,
                              void **edit_baton,
                              svn_repos_t *repos,
                              svn_fs_txn_t *txn,
                              const char *repos_url_decoded,
                              const char *base_path,
                              apr_hash_t *revprop_table,
+                             apr_uint32_t txn_flags,
                              svn_commit_callback2_t commit_callback,
                              void *commit_baton,
                              svn_repos_authz_callback_t authz_callback,
@@ -1058,6 +1064,7 @@ svn_repos_get_commit_editor5(const svn_delta_editor_t **editor,
   eb->fs = svn_repos_fs(repos);
   eb->txn = txn;
   eb->txn_owner = txn == NULL;
+  eb->txn_flags = txn_flags;
 
   *edit_baton = eb;
   *editor = e;
@@ -1072,6 +1079,28 @@ svn_repos_get_commit_editor5(const svn_delta_editor_t **editor,
                                    shim_callbacks, pool, pool));
 
   return SVN_NO_ERROR;
+}
+
+
+svn_error_t *
+svn_repos_get_commit_editor5(const svn_delta_editor_t **editor,
+                             void **edit_baton,
+                             svn_repos_t *repos,
+                             svn_fs_txn_t *txn,
+                             const char *repos_url_decoded,
+                             const char *base_path,
+                             apr_hash_t *revprop_table,
+                             svn_commit_callback2_t commit_callback,
+                             void *commit_baton,
+                             svn_repos_authz_callback_t authz_callback,
+                             void *authz_baton,
+                             apr_pool_t *pool)
+{
+  return svn_repos_get_commit_editor6(editor, edit_baton, repos, txn,
+                                      repos_url_decoded, base_path,
+                                      revprop_table, 0, commit_callback,
+                                      commit_baton, authz_callback,
+                                      authz_baton, pool);
 }
 
 
